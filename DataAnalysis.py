@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from DataLoading import DataLoading
+
 FEATURES_SRC = "data/train_features.csv"
 LABELS_SRC = "data/train_labels.csv"
 VISUALS = "data/visuals/"
@@ -10,8 +12,7 @@ class DataAnalysis:
     """ Visualisation and analysis of the training data """
 
     def __init__(self):
-        self.features: pd.DataFrame = pd.read_csv(FEATURES_SRC)
-        self.labels: pd.DataFrame = pd.read_csv(LABELS_SRC)
+        self.features, self.labels = DataLoading(FEATURES_SRC, LABELS_SRC, False, False, False).get_dataset()
 
     def exploratory_analysis(self):
         with pd.option_context('display.max_rows', None, 'display.max_columns', None):
