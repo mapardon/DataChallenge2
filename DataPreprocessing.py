@@ -1,50 +1,43 @@
+from typing import Literal
+
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
-from DataAnalysis import FEATURES_SRC, LABELS_SRC
-from DataLoading import DataLoading
-
-CHALLENGE_SRC = "data/test_features.csv"
+CHALLENGE_SRC = "data/challenge_features.csv"
 
 
 class DataPreprocessing:
-    def __init__(self, challenge: bool = False, short: bool = False):
+    def __init__(self, features: pd.DataFrame, labels: pd.DataFrame | None, data_id: pd.DataFrame | None):
 
-        self.features: pd.DataFrame | None = None
-        self.labels: pd.DataFrame | None = None
-        self.test_features: pd.DataFrame | None = None
-        self.test_labels: pd.DataFrame | None = None
-        self.data_id: pd.DataFrame | None = None
+        if labels is None and data_id is None:
+            raise Warning("Both label and data_id have been set to None for preprocessing.")
 
-        if not challenge:
-            dl = DataLoading(FEATURES_SRC, LABELS_SRC, challenge, not challenge, short)
-            self.features, self.labels = dl.get_train_dataset()
-        else:
-            dl = DataLoading(CHALLENGE_SRC, None, challenge, not challenge, short)
-            self.features, self.data_id = dl.get_challenge_dataset()
+        self.features: pd.DataFrame | None = features
+        self.labels: pd.DataFrame | None = labels
+        self.data_id: pd.DataFrame | None = data_id
 
-    def get_train_test_datasets(self):
-        train_features = self.features.iloc[:round(len(self.features) * 0.75), :]
-        train_labels = self.labels[:round(len(self.features) * 0.75)]
-        test_features = self.features.iloc[round(len(self.features) * 0.75):, :]
-        test_labels = self.labels[round(len(self.features) * 0.75):]
-
-        return train_features, train_labels, test_features, test_labels
+    def get_train_validation_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        return (self.features.iloc[:round(len(self.features) * 0.75), :], self.labels[:round(len(self.features) * 0.75)],
+                self.features.iloc[round(len(self.features) * 0.75):, :], self.labels[round(len(self.features) * 0.75):])
 
     def get_challenge_dataset(self):
         return self.features, self.data_id
+    
+    def numerize_categorical_features(self, numerizer: Literal["remove", "one-hot"]):
+        if numerizer == "remove":
+            self.features = self.features.select_dtypes([np.number])
+        
+        elif numerizer == "one-hot":
+            num_features = self.features.select_dtypes(["number"])
+            obj_features = self.features.select_dtypes(["object"])
+            encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop=None)
+            encoder.set_output(transform="pandas")
+            obj_features = encoder.fit_transform(obj_features)
+            self.features = pd.concat([num_features, obj_features], axis="columns")
 
-    def features_scaling(self, scaler=None):
+    def features_scaling(self, scaler: Literal["minmax"] | None = None):
         if scaler is not None:
             if scaler == "minmax":
                 scaler = MinMaxScaler()
                 self.features[self.features.select_dtypes([np.number]).columns] = scaler.fit_transform(self.features.select_dtypes([np.number]))
-
-
-if __name__ == '__main__':
-
-    dp = DataPreprocessing(False, True)
-    print(dp.features.iloc[5])
-    dp.features_scaling("minmax")
-    print(dp.features.iloc[5])
