@@ -12,7 +12,9 @@ class DataAnalysis:
     """ Visualisation and analysis of the training data """
 
     def __init__(self):
-        self.features, self.labels = DataLoading(FEATURES_SRC, LABELS_SRC, False, False, False).get_dataset()
+        dl = DataLoading()
+        dl.load_data(FEATURES_SRC, LABELS_SRC, False, True)
+        self.features, self.labels = dl.get_train_dataset()
 
     def exploratory_analysis(self):
         with pd.option_context('display.max_rows', None, 'display.max_columns', None):
@@ -58,7 +60,7 @@ class DataAnalysis:
 
         # labels visuals
         fig, ax = plt.subplots(1, 1)
-        elements = sorted([(str(k), v) for k, v in self.labels[self.labels.columns.to_list()[1]].value_counts().to_dict().items()],
+        elements = sorted([(str(k), v) for k, v in self.labels[self.labels.columns.to_list()[0]].value_counts().to_dict().items()],
                           key=lambda x: x[0])
         ax.bar([e[0] for e in elements], [e[1] for e in elements], width=0.3, color=["tab:blue"])
         ax.set_title("Damage grade")
