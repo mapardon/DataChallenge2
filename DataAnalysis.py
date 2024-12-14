@@ -13,7 +13,7 @@ class DataAnalysis:
 
     def __init__(self):
         dl = DataLoading()
-        dl.load_data(FEATURES_SRC, LABELS_SRC, False, True)
+        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
         self.features, self.labels = dl.get_train_dataset()
 
     def exploratory_analysis(self):

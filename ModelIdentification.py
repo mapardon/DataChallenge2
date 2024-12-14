@@ -5,27 +5,38 @@ import pandas as pd
 from sklearn.metrics import f1_score
 
 
+class ModelExperimentResultOld:
+    def __init__(self, model_tag, model, par_tag, par_value, is_reg_model, is_bag=False, estimator_tag=None):
+        self.model_tag: str = model_tag
+        self.model = model
+        self.par_tag: str = par_tag
+        self.par_value: str | float | int | None = par_value
+        self.is_reg_model: bool = is_reg_model
+        self.is_bag: bool = is_bag  # if the method uses an estimator (other than itself)
+        self.estimator_tag: str | None = estimator_tag
+
+
 class ModelIdentification(ABC):
     """
         Base class for model identification and model selection phases
     """
-    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, test_features: pd.DataFrame,
-                 test_labels: pd.DataFrame, cv_folds: int, verbose=False):
+    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, validation_features: pd.DataFrame,
+                 validation_labels: pd.DataFrame, cv_folds: int, verbose=False):
         self.train_features = train_features
         self.train_labels = train_labels
 
-        self.test_features = test_features
-        self.test_labels = test_labels
+        self.validation_features = validation_features
+        self.validation_labels = validation_labels
 
         self.cv_folds = cv_folds
         self.verbose = verbose
 
-    def parametric_identification(self, model, is_reg_model: bool = False) -> list:
+    def parametric_identification_cv(self, model, is_reg_model: bool = False) -> list:
         """
             Split train set in train/test sets to train/test the argument model on these and return the cross validation
             performance of the model.
 
-            :returns: F1 performance
+            :returns: performance of the model measured with the F1 score
         """
 
         n_rows_fold = len(self.train_features) // self.cv_folds
