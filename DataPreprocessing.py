@@ -7,8 +7,8 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 class PreprocessingParameters:
     def __init__(self, numerizer: Literal["remove", "one-hot"] | None, scaler: Literal["minmax"] | None):
-        self.numerizer = numerizer
-        self.scaler = scaler
+        self.numerizer: Literal["remove", "one-hot"] | None = numerizer
+        self.scaler: Literal["minmax"] | None = scaler
 
 
 class DataPreprocessing:

@@ -8,12 +8,12 @@ from ModelIdentification import ModelIdentification
 
 
 class ExperimentResultPI:
-    def __init__(self, model_tag, model, is_reg_model, performance, param):
-        self.model_tag = model_tag
+    def __init__(self, model_tag: Literal["lm", "dtree"], model, is_reg_model: bool, performance: list[float], param: dict | None):
+        self.model_tag: Literal["lm", "dtree"] = model_tag
         self.model = model
-        self.is_reg_model = is_reg_model
-        self.f1 = performance
-        self.param = param
+        self.is_reg_model: bool = is_reg_model
+        self.f1: list[float] = performance
+        self.param: dict | None = param
 
     def __repr__(self):
         return "{} ({}): {}".format(self.model_tag, self.param, self.f1)

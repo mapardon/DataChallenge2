@@ -13,8 +13,8 @@ CHALLENGE_SRC = None
 
 class MachineLearningProcedure:
     def __init__(self, preproc_pars: PreprocessingParameters | None, model_tags: list[Literal["lm", "tree"]] | None):
-        self.preproc_pars = preproc_pars
-        self.model_tags = model_tags
+        self.preproc_pars: PreprocessingParameters | None = preproc_pars
+        self.model_tags: list[Literal["lm", "tree"]] | None = model_tags
 
         self.train_features: pd.DataFrame | None = None
         self.train_labels: pd.DataFrame | None = None

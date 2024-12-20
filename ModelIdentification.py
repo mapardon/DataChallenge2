@@ -22,14 +22,14 @@ class ModelIdentification(ABC):
     """
     def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, validation_features: pd.DataFrame,
                  validation_labels: pd.DataFrame, cv_folds: int, verbose=False):
-        self.train_features = train_features
-        self.train_labels = train_labels
+        self.train_features: pd.DataFrame = train_features
+        self.train_labels: pd.DataFrame = train_labels
 
-        self.validation_features = validation_features
-        self.validation_labels = validation_labels
+        self.validation_features: pd.DataFrame = validation_features
+        self.validation_labels: pd.DataFrame = validation_labels
 
-        self.cv_folds = cv_folds
-        self.verbose = verbose
+        self.cv_folds: int = cv_folds
+        self.verbose: bool = verbose
 
     def parametric_identification_cv(self, model, is_reg_model: bool = False) -> list:
         """
