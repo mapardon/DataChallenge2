@@ -12,18 +12,20 @@ class DataLoading:
         if labels_src is not None:
             self.labels = pd.read_csv(labels_src)
 
-        if shuffle:
-            self.shuffle_dataset()
+            if shuffle:
+                self.shuffle_dataset()
+            else:
+                _ = self.labels.pop("building_id")
 
-        self.data_id, _ = self.features.pop("building_id"), self.labels.pop("building_id")
+        self.data_id = self.features.pop("building_id")
 
     def shuffle_dataset(self):
-        ds = pd.concat([self.features, self.labels[[self.labels.columns.to_list()[-1]]]], axis="columns")
+        ds = pd.concat([self.features, self.labels[self.labels.columns.to_list()[-1]]], axis="columns")  # drop building_id in labels to avoid same column name after concat
         ds = ds.sample(frac=1)
         ds.reset_index(inplace=True, drop=True)
 
-        # split features/labels and remove id
-        self.labels = ds[ds.columns.to_list()[-1]]
+        # split features/labels
+        self.labels = ds[ds.columns.to_list()[-1:]]
         self.features = ds[ds.columns.to_list()[:-1]]
 
     def get_train_dataset(self) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -37,8 +39,15 @@ class DataLoading:
 
 if __name__ == '__main__':
     features = "data/train_features_short.csv"
-    challenge = "data/challenge_features.csv"
     labels = "data/train_labels_short.csv"
+    challenge = "data/challenge_features.csv"
+
     dl = DataLoading()
+    dl.load_data(features, labels, False)
+    print("a", dl.get_train_dataset())
+
+    dl.load_data(features, labels, True)
+    print("b", dl.get_train_dataset())
+
     dl.load_data(challenge, None, False)
-    print(dl.get_challenge_dataset())
+    print("c", dl.get_challenge_dataset())

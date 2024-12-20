@@ -11,7 +11,7 @@ class MachineLearningProcedure:
     def __init__(self):
         self.preproc_params = list()
 
-    def main(self, modes : Literal["PI", "MI", "ME"]):
+    def main(self, modes: Literal["PI", "MI", "ME"]):
         if "PI" in modes:
             self.preprocessing_identification()
 
