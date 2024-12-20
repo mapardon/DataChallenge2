@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
-CHALLENGE_SRC = "data/challenge_features.csv"
+
+class PreprocessingParameters:
+    def __init__(self, numerizer: Literal["remove", "one-hot"] | None, scaler: Literal["minmax"] | None):
+        self.numerizer = numerizer
+        self.scaler = scaler
 
 
 class DataPreprocessing:
@@ -16,6 +20,14 @@ class DataPreprocessing:
         self.features: pd.DataFrame | None = features
         self.labels: pd.DataFrame | None = labels
         self.data_id: pd.DataFrame | None = data_id
+
+    def preprocessing(self, parameters: PreprocessingParameters):
+        pars = parameters
+        if pars.numerizer is not None:
+            self.numerize_categorical_features(pars.numerizer)
+
+        if pars.scaler is not None:
+            self.features_scaling(pars.scaler)
 
     def get_train_validation_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         return (self.features.iloc[:round(len(self.features) * 0.75), :], self.labels[:round(len(self.features) * 0.75)],
