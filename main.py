@@ -5,5 +5,7 @@ from MachineLearningProcedure import MachineLearningProcedure
 
 if __name__ == '__main__':
 
-    #DataAnalysis().exploratory_analysis()
-    MachineLearningProcedure(PreprocessingParameters("remove", "minmax")).main(["PI"])
+    # DataAnalysis().exploratory_analysis()
+
+    MachineLearningProcedure(PreprocessingParameters("remove", "minmax"),
+                             ["lm", "tree"]).main(["PI", "MI"])

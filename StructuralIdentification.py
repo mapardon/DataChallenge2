@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics import f1_score
 
 from ModelIdentification import ModelIdentification
-from ParametricIdentification import ExperimentResultPi
+from ParametricIdentification import ExperimentResultPI
 
 
 class ExperimentResultSi:
@@ -27,7 +27,7 @@ class StructuralIdentification(ModelIdentification):
 
         self.candidates: list[ExperimentResultSi] = list()
 
-    def model_selection(self, pi_candidates: list[ExperimentResultPi]):
+    def model_selection(self, pi_candidates: list[ExperimentResultPI]):
         for c in pi_candidates:
             m = c.model
             m.fit(self.train_features, self.train_labels)
