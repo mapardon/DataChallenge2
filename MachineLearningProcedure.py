@@ -4,7 +4,9 @@ import pandas as pd
 
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing, PreprocessingParameters
+from ModelIdentification import ModelExperimentResult
 from ParametricIdentification import ParametricIdentification
+from StructuralIdentification import StructuralIdentification
 
 FEATURES_SRC = "data/train_features_short.csv"
 LABELS_SRC = "data/train_labels_short.csv"
@@ -15,6 +17,7 @@ class MachineLearningProcedure:
     def __init__(self, preproc_pars: PreprocessingParameters | None, model_tags: list[Literal["lm", "tree"]] | None):
         self.preproc_pars: PreprocessingParameters | None = preproc_pars
         self.model_tags: list[Literal["lm", "tree"]] | None = model_tags
+        self.final_candidate: ModelExperimentResult | None = None
 
         self.train_features: pd.DataFrame | None = None
         self.train_labels: pd.DataFrame | None = None
@@ -46,9 +49,16 @@ class MachineLearningProcedure:
             print("/!/ Datasets not loaded")
             return
 
-        pi = ParametricIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels, 5)
-        for res in pi.parametric_identification(self.model_tags):
+        # Model identification
+        pi = ParametricIdentification(self.train_features, self.train_labels, 5)
+        pi_candidates: list[ModelExperimentResult] = pi.parametric_identification(self.model_tags)
+        print("MI results")
+        for res in pi_candidates:
             print(res)
+
+        # Structural identification = tournament between the best MI candidates tested on unused validation set
+        si = StructuralIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels, 5)
+        self.final_candidate = si.model_selection(pi_candidates)
 
     def model_exploitation(self):
         pass

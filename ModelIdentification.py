@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -16,17 +17,27 @@ class ModelExperimentResultOld:
         self.estimator_tag: str | None = estimator_tag
 
 
+class ModelExperimentResult:
+    def __init__(self, experiment_type: Literal["PI", "SI"], model_tag: Literal["lm", "dtree"], model, is_reg_model: bool,
+                 model_param: dict | None, performance: list[float]):
+        self.experiment_type: Literal["PI", "SI"] = experiment_type
+        self.model_tag: Literal["lm", "dtree"] = model_tag
+        self.model = model
+        self.is_reg_model: bool = is_reg_model
+        self.model_param: dict | None = model_param
+        self.f1: list[float] = performance
+
+    def __repr__(self):
+        return "{} ({}): {}".format(self.model_tag, self.model_param, self.f1)
+
+
 class ModelIdentification(ABC):
     """
         Base class for model identification and model selection phases
     """
-    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, validation_features: pd.DataFrame,
-                 validation_labels: pd.DataFrame, cv_folds: int, verbose=False):
+    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int, verbose=False):
         self.train_features: pd.DataFrame = train_features
         self.train_labels: pd.DataFrame = train_labels
-
-        self.validation_features: pd.DataFrame = validation_features
-        self.validation_labels: pd.DataFrame = validation_labels
 
         self.cv_folds: int = cv_folds
         self.verbose: bool = verbose
@@ -46,12 +57,10 @@ class ModelIdentification(ABC):
         y_i = self.train_labels
 
         for i in range(self.cv_folds):
-            X_i_tr = pd.concat([X_i.iloc[: n_rows_fold * i], X_i.iloc[n_rows_fold * (i + 1):]], axis=0,
-                               ignore_index=True)
+            X_i_tr = pd.concat([X_i.iloc[: n_rows_fold * i], X_i.iloc[n_rows_fold * (i + 1):]], axis=0, ignore_index=True)
             X_i_ts = X_i.iloc[n_rows_fold * i: n_rows_fold * (i + 1)]
 
-            y_i_tr = pd.concat([y_i.iloc[: n_rows_fold * i], y_i.iloc[n_rows_fold * (i + 1):]], axis=0,
-                               ignore_index=True)
+            y_i_tr = pd.concat([y_i.iloc[: n_rows_fold * i], y_i.iloc[n_rows_fold * (i + 1):]], axis=0, ignore_index=True)
             y_i_ts = y_i.iloc[n_rows_fold * i: n_rows_fold * (i + 1)]
 
             # fit and predict
