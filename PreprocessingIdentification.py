@@ -11,7 +11,7 @@ class PreprocExperimentResult:
     def __init__(self, configuration: PreprocessingParameters, performance: list[float]):
         self.configuration: PreprocessingParameters = configuration
         self.performance: list[float] = performance
-        # TODo some experiments will require extra outputs
+        # TODO some experiments will require extra outputs
 
     def __repr__(self):
         return "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.performance), 4))
@@ -50,7 +50,7 @@ class PreprocessingIdentification:
 
                 # TODO: some experiments will require extra outputs
 
-                perf = ParametricIdentificationCV(features, labels, 2, False).parametric_identification_cv(lm, True)
+                perf = ParametricIdentificationCV(features, labels, 2).parametric_identification_cv(lm, True)
                 self.candidates[-1].performance.extend(perf)
 
         return sorted(self.candidates, reverse=True, key=lambda x: statistics.mean(x.performance))

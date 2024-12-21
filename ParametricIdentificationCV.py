@@ -40,12 +40,12 @@ class ParametricIdentificationCV:
         Base class for model identification phase
     """
 
-    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int, verbose=False):
+    def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int):
         self.train_features: pd.DataFrame = train_features
         self.train_labels: pd.DataFrame = train_labels
 
+        self.candidates: list[ModelExperimentResult] = list()
         self.cv_folds: int = cv_folds
-        self.verbose: bool = verbose
 
     def parametric_identification_cv(self, model, is_reg_model: bool = False) -> list:
         """

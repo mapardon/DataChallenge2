@@ -36,6 +36,7 @@ class MachineLearningProcedure:
         self.validation_labels: pd.DataFrame | None = None
 
         self.final_preproc_candidate: PreprocExperimentResult | None = None
+        self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
 
     def main(self, modes: list[Literal["PPI", "PI", "SI", "ME"]]):
@@ -49,17 +50,13 @@ class MachineLearningProcedure:
                 raise Warning("No model has been provided for model identification")
             self.parametric_identification()
 
+        if "SI" in modes:
+            self.structural_identification()
+
         if "ME" in modes:
             self.model_exploitation()
 
-    def load_and_preprocess_dataset(self):
-        dl = DataLoading()
-        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
-        train_features, train_labels = dl.get_train_dataset()
-
-        dp = DataPreprocessing(train_features, train_labels, None)
-        dp.preprocessing(self.preproc_pars)
-        self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
+    # PREPROCESSING IDENTIFICATION
 
     def preprocessing_identification(self):
         dl = DataLoading()
@@ -75,10 +72,20 @@ class MachineLearningProcedure:
         for ppi_c in ppi_candidates:
             print(ppi_c)
 
-        # TODO: store configuration
+    # MODEL IDENTIFICATION
+
+    def load_and_preprocess_dataset(self):
+        dl = DataLoading()
+        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
+        train_features, train_labels = dl.get_train_dataset()
+
+        dp = DataPreprocessing(train_features, train_labels, None)
+        dp.preprocessing(self.preproc_pars)
+        self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
 
     def parametric_identification(self):
-        # Preprocess data
+        # TODO several experiments with reshuffling (?)
+
         if self.preproc_pars is not None:
             self.load_and_preprocess_dataset()
 
@@ -87,30 +94,40 @@ class MachineLearningProcedure:
             print("/!/ Datasets not loaded")
             return
 
-        # Model identification
         pi = ParametricIdentification(self.train_features, self.train_labels, 5)
-        pi_candidates: list[ModelExperimentResult] = pi.parametric_identification(self.mi_models)
+        self.pi_candidates = pi.parametric_identification(self.mi_models)
         print("\n * Parametric Identification *")
-        for pi_c in pi_candidates:
+        for pi_c in self.pi_candidates:
             print(pi_c)
 
-        # Structural identification = tournament between the best MI candidates on unused validation set
-        si = StructuralIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels, 5)
-        si_candidates = si.model_selection(pi_candidates)
+    def structural_identification(self):
+        """ Tournament between the best MI candidates on unused validation set """
+
+        # Incase data loaded during parametric identification
+        if self.train_features is None:
+            if self.preproc_pars is not None:
+                self.load_and_preprocess_dataset()
+
+            else:  # load precomputed preprocessed datasets
+                self.train_features, self.train_labels, self.validation_features, self.validation_labels = None, None, None, None
+                print("/!/ Datasets not loaded")
+                return
+
+        si = StructuralIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels)
+        si_candidates = si.model_selection(self.pi_candidates)
         self.final_model_candidate = si_candidates[0]
 
         print("\n * Structural Identification *")
         for si_c in si_candidates:
             print(si_c)
 
-    def structural_identification(self):
-        # TODO several experiments with reshuffling (?)
-        # TODO store final model
-        pass
+    # MODEL EXPLOITATION
 
     def model_exploitation(self):
         """ Use the models and preprocessing parameters having shown the best performance during training
         to predict challenge data """
+
+        # TODO: check if possible that challenge data has values not occurring in training data (via one-hot)
 
         # load challenge data
         dl = DataLoading()

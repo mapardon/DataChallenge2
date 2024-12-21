@@ -12,4 +12,4 @@ if __name__ == '__main__':
     mi_models = ["lm", "dtree"]
     preproc_pars = PreprocessingParameters("one-hot", "minmax")
     #MachineLearningProcedure(pi_confs, mi_models, preproc_pars).main(["PPI", "MI"])
-    MachineLearningProcedure(pi_confs, mi_models, preproc_pars).main(["PPI", "PI", "ME"])
+    MachineLearningProcedure(pi_confs, mi_models, preproc_pars).main(["PPI", "PI", "SI", "ME"])

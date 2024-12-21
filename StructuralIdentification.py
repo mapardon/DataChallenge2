@@ -2,23 +2,23 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from ParametricIdentificationCV import ParametricIdentificationCV, ModelExperimentResult
+from ParametricIdentificationCV import ModelExperimentResult
 
 
-class StructuralIdentification(ParametricIdentificationCV):
+class StructuralIdentification:
     """
         Compare the models having shown the best performance during parametric identification. Use the train set and
         test on validation set unused during parametric identification.
     """
 
     def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, validation_features: pd.DataFrame,
-                 validation_labels: pd.DataFrame, cv_folds: int):
-        super().__init__(train_features, train_labels, cv_folds, True)
+                 validation_labels: pd.DataFrame):
 
-        self.candidates: list[ModelExperimentResult] = list()
-
+        self.train_features: pd.DataFrame = train_features
+        self.train_labels: pd.DataFrame = train_labels
         self.validation_features: pd.DataFrame = validation_features
         self.validation_labels: pd.DataFrame = validation_labels
+        self.candidates: list[ModelExperimentResult] = list()
 
     def model_selection(self, pi_candidates: list[ModelExperimentResult]):
         for c in pi_candidates:

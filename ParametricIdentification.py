@@ -16,8 +16,6 @@ class ParametricIdentification(ParametricIdentificationCV):
     def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int):
         super().__init__(train_features, train_labels, cv_folds)
 
-        self.candidates: list[ModelExperimentResult] = list()
-
     def parametric_identification(self, model_tags: list[Literal["lm", "dtree"]]) -> list[ModelExperimentResult]:
         for model_tag in model_tags:
             {"lm": self.lm, "dtree": self.dtree}[model_tag]()
