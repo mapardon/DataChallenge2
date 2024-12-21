@@ -10,11 +10,11 @@ from ParametricIdentificationCV import ParametricIdentificationCV
 class PreprocExperimentResult:
     def __init__(self, configuration: PreprocessingParameters, performance: list[float]):
         self.configuration: PreprocessingParameters = configuration
-        self.performance: list[float] = performance
+        self.f1_scores: list[float] = performance
         # TODO some experiments will require extra outputs
 
     def __repr__(self):
-        return "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.performance), 4))
+        return "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.f1_scores), 4))
 
 
 class PreprocessingIdentification:
@@ -23,34 +23,30 @@ class PreprocessingIdentification:
         are tested with a linear model (not optimal but acceptable approximation considering computing restrictions).
     """
 
-    def __init__(self, configurations: list[PreprocessingParameters], features: pd.DataFrame, labels: pd.DataFrame, cv_folds: int = 5):
-        self.configurations: list[PreprocessingParameters] = configurations
-        self.cv_folds: int = cv_folds
-        self.candidates: list[PreprocExperimentResult] = list()
+    def __init__(self, features: pd.DataFrame, labels: pd.DataFrame, cv_folds: int = 5):
+        self.n_experiments: int = cv_folds
 
         self.features: pd.DataFrame = features
         self.labels: pd.DataFrame = labels
 
-    def preprocessing_identification(self) -> list[PreprocExperimentResult]:
+    def preprocessing_identification(self, configuration: PreprocessingParameters) -> PreprocExperimentResult:
         """
-            :returns: preprocessing experiment results sorted by decreasing average performance
+            :returns: PreprocExperimentResult object with tested configuration and performance of experiments
         """
 
         lm = LinearRegression()
-        for conf in self.configurations:
-            self.candidates.append(PreprocExperimentResult(conf, list()))
+        f1_scores: list[float] = list()
 
-            for _ in range(self.cv_folds):
-                features = self.features.copy(deep=True)
-                labels = self.labels.copy(deep=True)
+        for _ in range(self.n_experiments):
+            features = self.features.copy(deep=True)
+            labels = self.labels.copy(deep=True)
 
-                dp = DataPreprocessing(features, labels, None)
-                dp.preprocessing(conf)
-                features, labels, _, _ = dp.get_train_validation_datasets()
+            dp = DataPreprocessing(features, labels, None)
+            dp.preprocessing(configuration)
+            features, labels, _, _ = dp.get_train_validation_datasets()
 
-                # TODO: some experiments will require extra outputs
+            # TODO: some experiments will require extra outputs
 
-                perf = ParametricIdentificationCV(features, labels, 2).parametric_identification_cv(lm, True)
-                self.candidates[-1].performance.extend(perf)
+            f1_scores = ParametricIdentificationCV(features, labels, 2).parametric_identification_cv(lm, True)
 
-        return sorted(self.candidates, reverse=True, key=lambda x: statistics.mean(x.performance))
+        return PreprocExperimentResult(configuration, f1_scores)
