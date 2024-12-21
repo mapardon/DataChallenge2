@@ -1,4 +1,4 @@
-from abc import ABC
+import statistics
 from typing import Literal
 
 import numpy as np
@@ -28,13 +28,18 @@ class ModelExperimentResult:
         self.f1: list[float] = performance
 
     def __repr__(self):
-        return "{} ({}): {}".format(self.model_tag, self.model_param, self.f1)
+        if len(self.f1) > 1:
+            out = "{} ({}): avg {}, min {}, max {}".format(self.model_tag, self.model_param, round(statistics.mean(self.f1), 4), min(self.f1), max(self.f1))
+        else:
+            out = "{} ({}): {}".format(self.model_tag, self.model_param, round(self.f1[0], 4))
+        return out
 
 
-class ModelIdentification(ABC):
+class ParametricIdentificationCV:
     """
-        Base class for model identification and model selection phases
+        Base class for model identification phase
     """
+
     def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int, verbose=False):
         self.train_features: pd.DataFrame = train_features
         self.train_labels: pd.DataFrame = train_labels

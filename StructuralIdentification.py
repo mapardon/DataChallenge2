@@ -1,13 +1,11 @@
-import statistics
-
 import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from ModelIdentification import ModelIdentification, ModelExperimentResult
+from ParametricIdentificationCV import ParametricIdentificationCV, ModelExperimentResult
 
 
-class StructuralIdentification(ModelIdentification):
+class StructuralIdentification(ParametricIdentificationCV):
     """
         Compare the models having shown the best performance during parametric identification. Use the train set and
         test on validation set unused during parametric identification.
@@ -30,14 +28,4 @@ class StructuralIdentification(ModelIdentification):
             f1 = f1_score(self.validation_labels, y_i_vs_pred, average='micro')
             self.candidates.append(ModelExperimentResult("SI", c.model_tag, m, c.is_reg_model, c.model_param, [f1]))
 
-        self.candidates.sort(reverse=True, key=lambda x: x.f1)
-
-        # print results of the testing of the most promising models
-        if self.verbose:
-            print("\n * MODEL TESTING *")
-            print(" -> performance:")
-            for c in self.candidates:
-                print("{} ({})".format(c.model_tag, c.model_param))
-                print("candidate.auc: {}".format(round(statistics.mean(c.f1), 5)))
-
-        return self.candidates[0]
+        return sorted(self.candidates, reverse=True, key=lambda x: x.f1)

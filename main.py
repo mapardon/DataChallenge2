@@ -7,5 +7,8 @@ if __name__ == '__main__':
 
     # DataAnalysis().exploratory_analysis()
 
-    MachineLearningProcedure(PreprocessingParameters("remove", "minmax"),
-                             ["lm", "tree"]).main(["PI", "MI"])
+    pi_confs = [PreprocessingParameters("one-hot", None), PreprocessingParameters("remove", None), PreprocessingParameters("remove", "minmax")]
+    mi_models = ["lm", "dtree"]
+    preproc_pars = PreprocessingParameters("remove", "minmax")
+    #MachineLearningProcedure(pi_confs, mi_models, preproc_pars).main(["PPI", "MI"])
+    MachineLearningProcedure(pi_confs, mi_models, preproc_pars).main(["PPI"])

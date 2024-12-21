@@ -10,8 +10,15 @@ class PreprocessingParameters:
         self.numerizer: Literal["remove", "one-hot"] | None = numerizer
         self.scaler: Literal["minmax"] | None = scaler
 
+    def __repr__(self):
+        return "Preprocessing params: numerizer: {}, scaler: {}".format(self.numerizer, self.scaler)
+
 
 class DataPreprocessing:
+    """
+        Perform the requested preprocessing operations on provided dataset.
+    """
+
     def __init__(self, features: pd.DataFrame, labels: pd.DataFrame | None, data_id: pd.DataFrame | None):
 
         if labels is None and data_id is None:
