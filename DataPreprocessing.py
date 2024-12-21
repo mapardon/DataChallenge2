@@ -28,6 +28,10 @@ class DataPreprocessing:
         self.labels: pd.DataFrame | None = labels
         self.data_id: pd.DataFrame | None = data_id
 
+        # TODO keep?
+        self.out_detect_res = None
+        self.feat_sel_res = None
+
     def preprocessing(self, parameters: PreprocessingParameters):
         pars = parameters
         if pars.numerizer is not None:
@@ -40,7 +44,7 @@ class DataPreprocessing:
         return (self.features.iloc[:round(len(self.features) * 0.75), :], self.labels[:round(len(self.features) * 0.75)],
                 self.features.iloc[round(len(self.features) * 0.75):, :], self.labels[round(len(self.features) * 0.75):])
 
-    def get_challenge_dataset(self):
+    def get_challenge_dataset(self) -> tuple[pd.DataFrame, pd.Series]:
         return self.features, self.data_id
     
     def numerize_categorical_features(self, numerizer: Literal["remove", "one-hot"]):
@@ -55,8 +59,7 @@ class DataPreprocessing:
             obj_features = encoder.fit_transform(obj_features)
             self.features = pd.concat([num_features, obj_features], axis="columns")
 
-    def features_scaling(self, scaler: Literal["minmax"] | None = None):
-        if scaler is not None:
-            if scaler == "minmax":
-                scaler = MinMaxScaler()
-                self.features[self.features.select_dtypes([np.number]).columns] = scaler.fit_transform(self.features.select_dtypes([np.number]))
+    def features_scaling(self, scaler: Literal["minmax"]):
+        if scaler == "minmax":
+            scaler = MinMaxScaler()
+            self.features[self.features.select_dtypes([np.number]).columns] = scaler.fit_transform(self.features.select_dtypes([np.number]))

@@ -5,7 +5,7 @@ class DataLoading:
     def __init__(self):
         self.features: pd.DataFrame | None = None
         self.labels: pd.DataFrame | None = None
-        self.data_id: pd.DataFrame | None = None
+        self.data_id: pd.Series | None = None
 
     def load_data(self, features_src: str, labels_src: str | None, shuffle: bool = False):
         self.features = pd.read_csv(features_src)
@@ -33,7 +33,7 @@ class DataLoading:
             raise Warning("'self.labels' object is None, did you want to call 'self.get_challenge_dataset()'?")
         return self.features, self.labels
 
-    def get_challenge_dataset(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def get_challenge_dataset(self) -> tuple[pd.DataFrame, pd.Series]:
         return self.features, self.data_id
 
 

@@ -11,6 +11,7 @@ class PreprocExperimentResult:
     def __init__(self, configuration: PreprocessingParameters, performance: list[float]):
         self.configuration: PreprocessingParameters = configuration
         self.performance: list[float] = performance
+        # TODo some experiments will require extra outputs
 
     def __repr__(self):
         return "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.performance), 4))
@@ -30,7 +31,11 @@ class PreprocessingIdentification:
         self.features: pd.DataFrame = features
         self.labels: pd.DataFrame = labels
 
-    def preprocessing_identification(self):
+    def preprocessing_identification(self) -> list[PreprocExperimentResult]:
+        """
+            :returns: preprocessing experiment results sorted by decreasing average performance
+        """
+
         lm = LinearRegression()
         for conf in self.configurations:
             self.candidates.append(PreprocExperimentResult(conf, list()))
@@ -42,6 +47,8 @@ class PreprocessingIdentification:
                 dp = DataPreprocessing(features, labels, None)
                 dp.preprocessing(conf)
                 features, labels, _, _ = dp.get_train_validation_datasets()
+
+                # TODO: some experiments will require extra outputs
 
                 perf = ParametricIdentificationCV(features, labels, 2, False).parametric_identification_cv(lm, True)
                 self.candidates[-1].performance.extend(perf)
