@@ -5,6 +5,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from DataAnalysis import DataAnalysis
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing, PreprocessingParameters
 from ParametricIdentificationCV import ModelExperimentResult
@@ -17,17 +18,16 @@ SHORT = True
 if SHORT:
     FEATURES_SRC = "data/train_features_short.csv"
     LABELS_SRC = "data/train_labels_short.csv"
+    CHALLENGE_SRC = "data/challenge_features.csv"
 else:
     FEATURES_SRC = "data/train_features.csv"
     LABELS_SRC = "data/train_labels.csv"
-
-CHALLENGE_SRC = "data/challenge_features.csv"
-CHALLENGE_SRC = "data/train_features_short.csv"
+    CHALLENGE_SRC = "data/train_features_short.csv"
 
 
 class MachineLearningProcedure:
     def __init__(self, preproc_config: PreprocessingParameters | None, mi_models: list[Literal["lm", "dtree"]] | None):
-        self.preproc_config: PreprocessingParameters | None = preproc_config
+        self.preproc_config: PreprocessingParameters | None = preproc_config  # can be specified to skip preproc identification
         self.mi_models: list[Literal["lm", "dtree"]] | None = mi_models
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
@@ -37,7 +37,10 @@ class MachineLearningProcedure:
         self.validation_features: pd.DataFrame | None = None
         self.validation_labels: pd.DataFrame | None = None
 
-    def main(self, modes: list[Literal["PPI", "PI", "SI", "ME"]]):
+    def main(self, modes: list[Literal["DA", "PPI", "PI", "SI", "ME"]]):
+        if "DA" in modes:
+            DataAnalysis().exploratory_analysis()
+
         if "PPI" in modes:
             self.preprocessing_identification()
 
@@ -61,6 +64,9 @@ class MachineLearningProcedure:
         ppi = PreprocessingIdentification(features, labels, cv_folds=3)
         ppi_candidates: list[PreprocExperimentResult] = list()
 
+        # TODO check if we do this annoying thing to satisfy the type checking
+        # numerizers: list[Literal["remove", "one-hot"]] = ["remove", "one-hot"]
+
         # Categorical variables numerizer
         for numerizer in ["remove", "one-hot"]:
             ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters(numerizer, None)))
@@ -69,6 +75,7 @@ class MachineLearningProcedure:
         for scaler in ["minmax"]:
             ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters("remove", scaler)))
 
+        # Keep config having shown best results & display results
         ppi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1_scores))
         self.preproc_config = ppi_candidates[0].configuration
 
@@ -102,6 +109,7 @@ class MachineLearningProcedure:
         # Parametric identification
         pi = ParametricIdentification(self.train_features, self.train_labels, 5)
         self.pi_candidates = pi.parametric_identification(self.mi_models)
+
         print("\n * Parametric Identification *")
         for pi_c in self.pi_candidates:
             print(pi_c)
@@ -148,18 +156,13 @@ class MachineLearningProcedure:
 
         # predict challenge data
         model, is_reg_model = self.final_model_candidate.model, self.final_model_candidate.is_reg_model
-        tmp = model.predict(features)  # what are you doing linear model ??
-        labels = np.clip(np.round(tmp).astype(int), 1, 3) if is_reg_model else model.predict(features).astype(int)
+        # what are you doing linear model ??
+        labels = np.clip(np.round(model.predict(features)).astype(int), 1,3).flatten() if is_reg_model else model.predict(features).astype(int)
 
         # store challenge data
-        try:
-            pd.DataFrame({
-                "building_id": data_id,
-                "damage_grade": labels
-            }).to_csv("data/submission.csv", index=False)
-        except Exception as e:
-            print()
-        else:
-            print()
+        pd.DataFrame({
+            "building_id": data_id,
+            "damage_grade": labels
+        }).to_csv("data/submission.csv", index=False)
 
         print("\n * Model exploitation complete")

@@ -43,7 +43,7 @@ class PreprocessingIdentification:
 
             dp = DataPreprocessing(features, labels, None)
             dp.preprocessing(configuration)
-            features, labels, _, _ = dp.get_train_validation_datasets()
+            features, labels = dp.get_train_dataset()
 
             # TODO: some experiments will require extra outputs
 

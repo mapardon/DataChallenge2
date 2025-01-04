@@ -40,13 +40,20 @@ class DataPreprocessing:
         if pars.scaler is not None:
             self.features_scaling(pars.scaler)
 
+    # Retrieve preprocessed datasets
+
+    def get_train_dataset(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        return self.features, self.labels
+
     def get_train_validation_datasets(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         return (self.features.iloc[:round(len(self.features) * 0.75), :], self.labels[:round(len(self.features) * 0.75)],
                 self.features.iloc[round(len(self.features) * 0.75):, :], self.labels[round(len(self.features) * 0.75):])
 
     def get_challenge_dataset(self) -> tuple[pd.DataFrame, pd.Series]:
         return self.features, self.data_id
-    
+
+    # Preprocessing operations
+
     def numerize_categorical_features(self, numerizer: Literal["remove", "one-hot"]):
         if numerizer == "remove":
             self.features = self.features.select_dtypes([np.number])
