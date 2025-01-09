@@ -13,16 +13,17 @@ from ParametricIdentification import ParametricIdentification
 from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
 from StructuralIdentification import StructuralIdentification
 
-SHORT = True
+SHORT = False
 
 if SHORT:
     FEATURES_SRC = "data/train_features_short.csv"
     LABELS_SRC = "data/train_labels_short.csv"
-    CHALLENGE_SRC = "data/challenge_features.csv"
+    CHALLENGE_SRC = "data/train_features_short.csv"
+
 else:
     FEATURES_SRC = "data/train_features.csv"
     LABELS_SRC = "data/train_labels.csv"
-    CHALLENGE_SRC = "data/train_features_short.csv"
+    CHALLENGE_SRC = "data/challenge_features.csv"
 
 
 class MachineLearningProcedure:
@@ -142,8 +143,6 @@ class MachineLearningProcedure:
         """ Use the models and preprocessing parameters having shown the best performance during training
         to predict challenge data """
 
-        # TODO: check if possible that challenge data has values not occurring in training data (via one-hot)
-
         # load challenge data
         dl = DataLoading()
         dl.load_data(CHALLENGE_SRC, None, False)
@@ -157,7 +156,7 @@ class MachineLearningProcedure:
         # predict challenge data
         model, is_reg_model = self.final_model_candidate.model, self.final_model_candidate.is_reg_model
         # what are you doing linear model ??
-        labels = np.clip(np.round(model.predict(features)).astype(int), 1,3).flatten() if is_reg_model else model.predict(features).astype(int)
+        labels = np.clip(np.round(model.predict(features)).astype(int), 1, 3).flatten() if is_reg_model else model.predict(features).astype(int)
 
         # store challenge data
         pd.DataFrame({
