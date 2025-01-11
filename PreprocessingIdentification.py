@@ -3,18 +3,29 @@ import statistics
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from DataPreprocessing import PreprocessingParameters, DataPreprocessing
+from DataPreprocessing import PreprocessingParameters, DataPreprocessing, PreprocessingOutput
 from ParametricIdentificationCV import ParametricIdentificationCV
 
 
 class PreprocExperimentResult:
-    def __init__(self, configuration: PreprocessingParameters, performance: list[float]):
+    def __init__(self, configuration: PreprocessingParameters, performance: list[float], preprocessing_output: list[PreprocessingOutput]):
         self.configuration: PreprocessingParameters = configuration
         self.f1_scores: list[float] = performance
-        # TODO some experiments will require extra outputs
+        self.preprocessing_output: list[PreprocessingOutput] = preprocessing_output
 
     def __repr__(self):
-        return "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.f1_scores), 4))
+        out = "Preprocessing Experiment\n {}\n performance: {}".format(self.configuration, round(statistics.mean(self.f1_scores), 4))
+
+        if self.configuration.outlier_detector is not None:
+            out += "\nn_outliers_removed: {}-{}".format(min(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res,
+                                                        max(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res)
+        if self.configuration.remove_uninformative_features:
+            out += "\nuninformative features removed: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.uninformative_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.uninformative_features])]))
+
+        if self.configuration.feature_selection is not None:
+            out += "\nfeatures selected: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.selected_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.uninformative_features])]))
+
+        return out
 
 
 class PreprocessingIdentification:
@@ -35,18 +46,19 @@ class PreprocessingIdentification:
         """
 
         lm = LinearRegression()
-        f1_scores: list[float] = list()
+        ppe_res = PreprocExperimentResult(configuration, list(), list())
 
         for _ in range(self.n_experiments):
             features = self.features.copy(deep=True)
             labels = self.labels.copy(deep=True)
 
             dp = DataPreprocessing(features, labels, None)
-            dp.preprocessing(configuration)
+            preprocessing_output = dp.preprocessing(configuration)
             features, labels = dp.get_train_dataset()
-
-            # TODO: some experiments will require extra outputs
 
             f1_scores = ParametricIdentificationCV(features, labels, 2).parametric_identification_cv(lm, True)
 
-        return PreprocExperimentResult(configuration, f1_scores)
+            ppe_res.preprocessing_output.append(preprocessing_output)
+            ppe_res.f1_scores += f1_scores
+
+        return ppe_res

@@ -13,7 +13,7 @@ from ParametricIdentification import ParametricIdentification
 from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
 from StructuralIdentification import StructuralIdentification
 
-SHORT = False
+SHORT = True
 
 if SHORT:
     FEATURES_SRC = "data/train_features_short.csv"
@@ -27,8 +27,8 @@ else:
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_config: PreprocessingParameters | None, mi_models: list[Literal["lm", "dtree"]] | None):
-        self.preproc_config: PreprocessingParameters | None = preproc_config  # can be specified to skip preproc identification
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[Literal["lm", "dtree"]] | None):
+        self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
         self.mi_models: list[Literal["lm", "dtree"]] | None = mi_models
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
@@ -62,23 +62,32 @@ class MachineLearningProcedure:
         dl = DataLoading()
         dl.load_data(FEATURES_SRC, LABELS_SRC, False)
         features, labels = dl.get_train_dataset()
+
         ppi = PreprocessingIdentification(features, labels, cv_folds=3)
         ppi_candidates: list[PreprocExperimentResult] = list()
+        default_numerizer = "remove"
+        default_scaler = None
+        default_outlier_detector = None
+        default_remove_uninformative_features = False
+        default_feature_selector = None
 
         # TODO check if we do this annoying thing to satisfy the type checking
         # numerizers: list[Literal["remove", "one-hot"]] = ["remove", "one-hot"]
 
         # Categorical variables numerizer
         for numerizer in ["remove", "one-hot"]:
-            ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters(numerizer, None)))
+            ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters(numerizer, default_scaler, default_outlier_detector, default_remove_uninformative_features, default_feature_selector)))
 
         # Numerical features scaling
         for scaler in ["minmax"]:
-            ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters("remove", scaler)))
+            ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters(default_numerizer, scaler, default_outlier_detector, default_remove_uninformative_features, default_feature_selector)))
+
+        for remove_uninformative_features in [True]:
+            ppi_candidates.append(ppi.preprocessing_identification(PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, remove_uninformative_features, default_feature_selector)))
 
         # Keep config having shown best results & display results
         ppi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1_scores))
-        self.preproc_config = ppi_candidates[0].configuration
+        self.preproc_params = ppi_candidates[0].configuration
 
         print("\n * Preprocessing Identification *")
         for ppi_c in ppi_candidates:
@@ -99,8 +108,8 @@ class MachineLearningProcedure:
         # TODO several experiments with reshuffling (?)
 
         # Load data
-        if self.preproc_config is not None:
-            self.load_and_preprocess_dataset(self.preproc_config)
+        if self.preproc_params is not None:
+            self.load_and_preprocess_dataset(self.preproc_params)
 
         else:  # load precomputed preprocessed datasets
             self.train_features, self.train_labels, self.validation_features, self.validation_labels = None, None, None, None
@@ -120,8 +129,8 @@ class MachineLearningProcedure:
 
         # Load data (incase data loaded during parametric identification)
         if self.train_features is None:
-            if self.preproc_config is not None:
-                self.load_and_preprocess_dataset(self.preproc_config)
+            if self.preproc_params is not None:
+                self.load_and_preprocess_dataset(self.preproc_params)
 
             else:  # load precomputed preprocessed datasets
                 self.train_features, self.train_labels, self.validation_features, self.validation_labels = None, None, None, None
@@ -150,7 +159,7 @@ class MachineLearningProcedure:
 
         # preprocess challenge data
         dp = DataPreprocessing(features, None, data_id)
-        dp.preprocessing(self.preproc_config)
+        dp.preprocessing(self.preproc_params)
         features, data_id = dp.get_challenge_dataset()
 
         # predict challenge data

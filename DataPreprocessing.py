@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -5,13 +6,24 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
+@dataclass
 class PreprocessingParameters:
-    def __init__(self, numerizer: Literal["remove", "one-hot"] | None, scaler: Literal["minmax"] | None):
-        self.numerizer: Literal["remove", "one-hot"] | None = numerizer
-        self.scaler: Literal["minmax"] | None = scaler
+    numerizer: Literal["remove", "one-hot"] | None = None
+    scaler: Literal["minmax"] | None = None
+    outlier_detector: Literal[""] | None = None
+    remove_uninformative_features: bool = False
+    feature_selection: Literal["RFE"] | list | np.ndarray | None = None
 
     def __repr__(self):
+        # TODO: all parameters
         return "Preprocessing params: numerizer: {}, scaler: {}".format(self.numerizer, self.scaler)
+
+
+@dataclass
+class PreprocessingOutput:
+    outliers_detection_res: int | None = None
+    uninformative_features: list[str] | None = None
+    selected_features: str | None = None
 
 
 class DataPreprocessing:
@@ -28,17 +40,26 @@ class DataPreprocessing:
         self.labels: pd.DataFrame | None = labels
         self.data_id: pd.DataFrame | None = data_id
 
-        # TODO keep?
-        self.out_detect_res = None
-        self.feat_sel_res = None
-
-    def preprocessing(self, parameters: PreprocessingParameters) -> None:
+    def preprocessing(self, parameters: PreprocessingParameters) -> PreprocessingOutput:
         pars = parameters
+        res = PreprocessingOutput()
+
         if pars.numerizer is not None:
             self.numerize_categorical_features(pars.numerizer)
 
         if pars.scaler is not None:
             self.features_scaling(pars.scaler)
+
+        if pars.outlier_detector is not None:
+            res.outliers_detection_res = self.outlier_detection(pars.outlier_detector)
+
+        if pars.remove_uninformative_features:
+            res.uninformative_features = self.remove_uninformative_features()
+
+        if pars.feature_selection is not None:
+            res.selected_features = self.feature_selection(feat_selector=pars.feature_selection)
+
+        return  res
 
     # Retrieve preprocessed datasets
 
@@ -71,34 +92,25 @@ class DataPreprocessing:
             scaler = MinMaxScaler()
             self.features[self.features.select_dtypes([np.number]).columns] = scaler.fit_transform(self.features.select_dtypes([np.number]))
 
-    def outlier_detection(self):
+    def outlier_detection(self, outlier_detector: Literal[""]):
         pass
 
-    def remove_correlated_features(self):
-        """ Remove highly correlated features (useless and error source).
-        It is advised to run this function after numerize_categorical_features.
+    def remove_uninformative_features(self):
+        """
+            Remove features having at least 95% of observations with same value (probably not useful in the model).
+        """
 
-        :returns: TBD """
+        n_features = len(self.features)
+        uninformative_threshold = 0.95
+        modes = self.features.mode()
+        uninformative_features = list()
 
-        corr_matrix = self.features.corr(numeric_only=True).to_dict()
-        correlated_features = dict()
+        for i, m in enumerate(modes):
+            if self.features[self.features[m] == modes.iloc[0, i]].shape[0] / n_features >= uninformative_threshold:
+                uninformative_features.append(m)
 
-        for k1 in corr_matrix:
-            for k2 in list(corr_matrix.keys())[:list(corr_matrix.keys()).index(k1) + 1]:
-                corr_matrix[k1][k2] = round(corr_matrix[k1][k2], 4 if corr_matrix[k1][k2] < 0 else 5)
+        self.features = self.features.drop(columns=uninformative_features)
+        return uninformative_features
 
-                if abs(corr_matrix[k1][k2]) > 0.6 and k1 != k2:
-                    if k1 not in correlated_features and k2 not in correlated_features:
-                        correlated_features[k1] = {k2}
-                    elif k1 in correlated_features:
-                        correlated_features[k1].add(k2)
-                    elif k2 in correlated_features:
-                        correlated_features[k2].add(k1)
-
-        self.features.drop(columns=correlated_features.keys(), inplace=True)
-        return len(correlated_features)
-
-    def feature_selection(self, feat_selector: Literal["RFE"] | None, feat_to_select: list | np.ndarray | None):
-        if feat_selector is None and feat_to_select is None:
-            raise Warning("Both feature selector and list of features have been set to None for feature selection.")
+    def feature_selection(self, feat_selector: Literal["RFE"] | list | np.ndarray | None):
         pass
