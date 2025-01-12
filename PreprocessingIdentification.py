@@ -22,8 +22,11 @@ class PreprocExperimentResult:
         if self.configuration.remove_uninformative_features:
             out += "\nuninformative features removed: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.uninformative_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.uninformative_features])]))
 
-        if self.configuration.feature_selection is not None:
-            out += "\nfeatures selected: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.selected_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.uninformative_features])]))
+        if self.configuration.remove_correlated_features:
+            out += "\ncorrelated features removed: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.correlated_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.correlated_features])]))
+
+        if self.configuration.feature_selector is not None:
+            out += "\nfeatures selected: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.selected_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.selected_features])]))
 
         return out
 
