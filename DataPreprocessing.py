@@ -3,6 +3,8 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
@@ -14,10 +16,11 @@ class PreprocessingParameters:
     remove_uninformative_features: bool = False
     remove_correlated_features: bool = False
     feature_selector: Literal["RFE"] | list | np.ndarray | None = None
+    feature_selection_prop: float | None = None
 
     def __repr__(self):
-        out = "Preprocessing params: numerizer: {}, scaler: {}, outlier detector: {}, remove uninformative features: {}, remove correlated features: {}, feature selector: {}"
-        return out.format(self.numerizer, self.scaler, self.outlier_detector, self.remove_uninformative_features, self.remove_correlated_features, self.feature_selector)
+        out = "Preprocessing params: numerizer: {}, scaler: {}, outlier detector: {}, remove uninformative features: {}, remove correlated features: {}, feature selector: {} ({})"
+        return out.format(self.numerizer, self.scaler, self.outlier_detector, self.remove_uninformative_features, self.remove_correlated_features, self.feature_selector, self.feature_selection_prop)
 
 
 @dataclass
@@ -62,9 +65,9 @@ class DataPreprocessing:
             res.correlated_features = self.remove_correlated_features()
 
         if pars.feature_selector is not None:
-            res.selected_features = self.feature_selection(feat_selector=pars.feature_selector)
+            res.selected_features = self.feature_selection(feat_selector=pars.feature_selector, feature_selection_prop=pars.feature_selection_prop)
 
-        return  res
+        return res
 
     # Retrieve preprocessed datasets
 
@@ -141,5 +144,21 @@ class DataPreprocessing:
         self.features.drop(columns=correlated_features.keys(), inplace=True)
         return list(correlated_features.keys())  # explicit convertion to avoid type hint error
 
-    def feature_selection(self, feat_selector: Literal["RFE"] | list | np.ndarray | None):
-        pass
+    def feature_selection(self, feat_selector: Literal["RFE"] | list | np.ndarray | None, feature_selection_prop: float):
+
+        if feat_selector in ["RFE"]:
+            # fit estimator
+            model = LinearRegression()
+            selector = RFE(model, n_features_to_select=feature_selection_prop, step=1)
+            selector = selector.fit(self.features, self.labels)
+            features_to_select = [c for c, cond in zip(self.features.columns.to_list(), selector.support_) if cond]
+
+        elif type(feat_selector) is list:
+            features_to_select = feat_selector
+
+        else:
+            raise Warning("Invalid feature selector provided")
+
+        # keep best-ranked features
+        self.features = self.features[features_to_select]
+        return features_to_select
