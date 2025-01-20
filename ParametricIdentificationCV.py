@@ -1,4 +1,5 @@
 import statistics
+from dataclasses import dataclass
 from typing import Literal, Union
 
 import numpy as np
@@ -7,7 +8,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import f1_score
 from sklearn.tree import DecisionTreeClassifier
 
-# For type hint
 Model = Union[LinearRegression, DecisionTreeClassifier]
 
 
@@ -22,21 +22,31 @@ class ModelExperimentResultOld:
         self.estimator_tag: str | None = estimator_tag
 
 
+# FIXME: usages
+@dataclass
+class ModelExperimentParameters:
+    experiment_type: Literal["PI", "SI"] | None = None
+    model_tag: Literal["lm", "dtree"] | None = None
+    model: Model | None = None
+    is_reg_model: bool | None = None
+    model_params: dict | None | None = None
+
+    def __repr__(self):
+        out = "{} ({})".format(self.model_tag, self.model_params)
+        return out
+
+
+# FIXME: usages
+@dataclass
 class ModelExperimentResult:
-    def __init__(self, experiment_type: Literal["PI", "SI"], model_tag: Literal["lm", "dtree"], model, is_reg_model: bool,
-                 model_param: dict | None, performance: list[float]):
-        self.experiment_type: Literal["PI", "SI"] = experiment_type
-        self.model_tag: Literal["lm", "dtree"] = model_tag
-        self.model: Model = model
-        self.is_reg_model: bool = is_reg_model
-        self.model_param: dict | None = model_param
-        self.f1: list[float] = performance
+    config: ModelExperimentParameters
+    f1: list[float]
 
     def __repr__(self):
         if len(self.f1) > 1:
-            out = "{} ({}): avg {}, min {}, max {}".format(self.model_tag, self.model_param, round(statistics.mean(self.f1), 4), round(min(self.f1), 4), round(max(self.f1), 4))
+            out = "configuration: {}, performance: avg {}, min {}, max {}".format(self.config, round(statistics.mean(self.f1), 4), round(min(self.f1), 4), round(max(self.f1), 4))
         else:
-            out = "{} ({}): {}".format(self.model_tag, self.model_param, round(self.f1[0], 4))
+            out = "configuration: {}, performance: {}".format(self.config, round(self.f1[0], 4))
         return out
 
 

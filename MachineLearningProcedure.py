@@ -9,7 +9,7 @@ from DataAnalysis import DataAnalysis
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing, PreprocessingParameters
 from ParametricIdentificationCV import ModelExperimentResult
-from ParametricIdentification import ParametricIdentification
+from ParametricIdentification import ParametricIdentification, experiment_models
 from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
 from StructuralIdentification import StructuralIdentification
 
@@ -27,7 +27,7 @@ else:
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[Literal["lm", "dtree"]] | None):
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[experiment_models] | None):
         self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
         self.mi_models: list[Literal["lm", "dtree"]] | None = mi_models
         self.pi_candidates: list[ModelExperimentResult] = list()
