@@ -13,7 +13,7 @@ from ParametricIdentification import ParametricIdentification
 from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
 from StructuralIdentification import StructuralIdentification
 
-SHORT = False
+SHORT = True
 
 if SHORT:
     FEATURES_SRC = "data/train_features_short.csv"
@@ -65,6 +65,9 @@ class MachineLearningProcedure:
 
         ppi = PreprocessingIdentification(features, labels, cv_folds=3)
         ppi_candidates: list[PreprocExperimentResult] = list()
+        tmp: list[PreprocExperimentResult] = list()
+        best_preproc_params_combination: PreprocessingParameters = PreprocessingParameters()
+
         default_numerizer: Literal["remove", "one-hot"] = "remove"
         default_scaler = None
         default_outlier_detector = None
@@ -82,31 +85,50 @@ class MachineLearningProcedure:
         # Categorical variables numerizer
         for numerizer in numerizers:
             ppars = PreprocessingParameters(numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, default_remove_corr_features, default_feature_selector, default_feat_select_prop)
-            ppi_candidates.append(ppi.preprocessing_identification(ppars))
+            tmp.append(ppi.preprocessing_identification(ppars))
+        best_preproc_params_combination.numerizer = max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.numerizer
+        ppi_candidates.extend(tmp)
+        tmp.clear()
 
         # Numerical features scaling
         for scaler in scalers:
             ppars = PreprocessingParameters(default_numerizer, scaler, default_outlier_detector, default_remove_uninf_features, default_remove_corr_features, default_feature_selector, default_feat_select_prop)
-            ppi_candidates.append(ppi.preprocessing_identification(ppars))
+            tmp.append(ppi.preprocessing_identification(ppars))
+        best_preproc_params_combination.scaler = max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.scaler
+        ppi_candidates.extend(tmp)
+        tmp.clear()
 
         # Remove uninformative features
         for remove_uninf_features in [True]:
             ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, remove_uninf_features, default_remove_corr_features, default_feature_selector, default_feat_select_prop)
-            ppi_candidates.append(ppi.preprocessing_identification(ppars))
+            tmp.append(ppi.preprocessing_identification(ppars))
+        best_preproc_params_combination.remove_uninformative_features = max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.remove_uninformative_features
+        ppi_candidates.extend(tmp)
+        tmp.clear()
 
         # Remove correlated features
         for remove_corr_features in [True]:
             ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, remove_corr_features, default_feature_selector, default_feat_select_prop)
-            ppi_candidates.append(ppi.preprocessing_identification(ppars))
+            tmp.append(ppi.preprocessing_identification(ppars))
+        best_preproc_params_combination.remove_correlated_features = max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.remove_correlated_features
+        ppi_candidates.extend(tmp)
+        tmp.clear()
 
+        # Feature selection
         for feature_selector in feature_selectors:
-            if feature_selector == "RFE":
+            if feature_selector in ["RFE"]:
                 for feat_select_prop in feat_select_props:
-                    ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, remove_corr_features, feature_selector, feat_select_prop)
-                    ppi_candidates.append(ppi.preprocessing_identification(ppars))
+                    ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, default_remove_corr_features, feature_selector, feat_select_prop)
+                    tmp.append(ppi.preprocessing_identification(ppars))
             else:
-                ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, remove_corr_features, feature_selector, default_feat_select_prop)
-                ppi_candidates.append(ppi.preprocessing_identification(ppars))
+                ppars = PreprocessingParameters(default_numerizer, default_scaler, default_outlier_detector, default_remove_uninf_features, default_remove_corr_features, feature_selector, default_feat_select_prop)
+                tmp.append(ppi.preprocessing_identification(ppars))
+        best_preproc_params_combination.feature_selector, best_preproc_params_combination.feature_selection_prop = max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.feature_selector, max(tmp, key=lambda x: statistics.mean(x.f1_scores)).configuration.feature_selection_prop
+        ppi_candidates.extend(tmp)
+        tmp.clear()
+
+        # Combination of better-performing features
+        ppi_candidates.append(ppi.preprocessing_identification(best_preproc_params_combination))
 
         # Keep config having shown best results & display results
         ppi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1_scores))
