@@ -9,7 +9,7 @@ from DataAnalysis import DataAnalysis
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing, PreprocessingParameters
 from ParametricIdentificationCV import ModelExperimentResult
-from ParametricIdentification import ParametricIdentification, experiment_models
+from ParametricIdentification import ParametricIdentification, experiment_model_tags
 from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
 from StructuralIdentification import StructuralIdentification
 
@@ -27,7 +27,7 @@ else:
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[experiment_models] | None):
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[experiment_model_tags] | None):
         self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
         self.mi_models: list[Literal["lm", "dtree"]] | None = mi_models
         self.pi_candidates: list[ModelExperimentResult] = list()
@@ -133,6 +133,7 @@ class MachineLearningProcedure:
         # Keep config having shown best results & display results
         ppi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1_scores))
         self.preproc_params = ppi_candidates[0].configuration
+        self.preproc_params.feature_selector = ppi_candidates[0].preprocessing_output[0].selected_features
 
         print("\n * Preprocessing Identification *")
         for ppi_c in ppi_candidates:
@@ -208,8 +209,7 @@ class MachineLearningProcedure:
         features, data_id = dp.get_challenge_dataset()
 
         # predict challenge data
-        model, is_reg_model = self.final_model_candidate.model, self.final_model_candidate.is_reg_model
-        # what are you doing linear model ??
+        model, is_reg_model = self.final_model_candidate.config.model, self.final_model_candidate.config.is_reg_model
         labels = np.clip(np.round(model.predict(features)).astype(int), 1, 3).flatten() if is_reg_model else model.predict(features).astype(int)
 
         # store challenge data

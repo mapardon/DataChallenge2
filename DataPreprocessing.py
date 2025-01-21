@@ -150,7 +150,6 @@ class DataPreprocessing:
             # fit estimator
             model = LinearRegression()
             selector = RFE(model, n_features_to_select=feature_selection_prop, step=1)
-            # FIXME: for preprocessing of challenge data, we must change feature selector = RFE to list of selected features
             selector = selector.fit(self.features, self.labels)
             features_to_select = [c for c, cond in zip(self.features.columns.to_list(), selector.support_) if cond]
 

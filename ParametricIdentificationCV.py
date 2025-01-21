@@ -4,11 +4,13 @@ from typing import Literal, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import f1_score
 from sklearn.tree import DecisionTreeClassifier
 
-Model = Union[LinearRegression, DecisionTreeClassifier]
+experiment_model_tags = Literal["lm", "dtree", "gbc"]
+experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier]
 
 
 class ModelExperimentResultOld:
@@ -22,12 +24,11 @@ class ModelExperimentResultOld:
         self.estimator_tag: str | None = estimator_tag
 
 
-# FIXME: usages
 @dataclass
 class ModelExperimentParameters:
     experiment_type: Literal["PI", "SI"] | None = None
-    model_tag: Literal["lm", "dtree"] | None = None
-    model: Model | None = None
+    model_tag: experiment_model_tags | None = None
+    model: experiment_model_types | None = None
     is_reg_model: bool | None = None
     model_params: dict | None | None = None
 
@@ -36,7 +37,6 @@ class ModelExperimentParameters:
         return out
 
 
-# FIXME: usages
 @dataclass
 class ModelExperimentResult:
     config: ModelExperimentParameters

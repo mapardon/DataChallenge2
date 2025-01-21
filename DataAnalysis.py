@@ -49,13 +49,13 @@ class DataAnalysis:
             ax_count += 1
 
             if not ax_count % 4:
-                #plt.savefig(VISUALS + "features_visual_{}.pdf".format(fig_idx))
+                # plt.savefig(VISUALS + "features_visual_{}.pdf".format(fig_idx))
                 plt.show()
                 ax_count *= 0
                 fig_idx += 1
 
         if ax_count % 4:
-            #plt.savefig(VISUALS + "features_visual_{}.pdf".format(fig_idx))
+            # plt.savefig(VISUALS + "features_visual_{}.pdf".format(fig_idx))
             plt.show()
 
         # labels visuals
@@ -64,5 +64,5 @@ class DataAnalysis:
                           key=lambda x: x[0])
         ax.bar([e[0] for e in elements], [e[1] for e in elements], width=0.3, color=["tab:blue"])
         ax.set_title("Damage grade")
-        #plt.savefig(VISUALS + "labels_visual.pdf")
+        # plt.savefig(VISUALS + "labels_visual.pdf")
         plt.show()
