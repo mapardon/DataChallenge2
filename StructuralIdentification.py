@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from ParametricIdentificationCV import ModelExperimentResult, ModelExperimentParameters
+from ParametricIdentificationCV import ModelExperimentResult, ModelExperimentConfiguration
 
 
 class StructuralIdentification:
@@ -23,9 +23,9 @@ class StructuralIdentification:
     def model_selection(self, pi_candidates: list[ModelExperimentResult]):
         for c in pi_candidates:
             m = c.config.model
-            m.fit(self.train_features, self.train_labels)
+            m.fit(self.train_features, self.train_labels.values.ravel())
             y_i_vs_pred = np.clip(np.round(m.predict(self.validation_features)).astype(int), 1, 3) if c.config.is_reg_model else m.predict(self.validation_features).astype(int)
             f1 = f1_score(self.validation_labels, y_i_vs_pred, average='micro')
-            self.candidates.append(ModelExperimentResult(ModelExperimentParameters("SI", c.config.model_tag, m, c.config.is_reg_model, c.config.model_params), [f1]))
+            self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("SI", c.config.model_tag, m, c.config.is_reg_model, c.config.model_params), [f1]))
 
         return sorted(self.candidates, reverse=True, key=lambda x: x.f1)

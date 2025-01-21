@@ -27,9 +27,9 @@ else:
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_models: list[experiment_model_tags] | None):
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: list[tuple[experiment_model_tags, str | None]] | None):
         self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
-        self.mi_models: list[Literal["lm", "dtree"]] | None = mi_models
+        self.mi_configs: list[tuple[experiment_model_tags, str | None]] | None = mi_configs
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
 
@@ -46,7 +46,7 @@ class MachineLearningProcedure:
             self.preprocessing_identification()
 
         if "PI" in modes:
-            if self.mi_models is None:
+            if self.mi_configs is None:
                 raise Warning("No model has been provided for model identification")
             self.parametric_identification()
 
@@ -164,7 +164,7 @@ class MachineLearningProcedure:
 
         # Parametric identification
         pi = ParametricIdentification(self.train_features, self.train_labels, 5)
-        self.pi_candidates = pi.parametric_identification(self.mi_models)
+        self.pi_candidates = pi.parametric_identification(self.mi_configs)
 
         print("\n * Parametric Identification *")
         for pi_c in self.pi_candidates:

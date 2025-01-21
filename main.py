@@ -5,8 +5,8 @@ from ParametricIdentification import experiment_model_tags
 if __name__ == '__main__':
 
     preproc_pars = PreprocessingParameters(numerizer="one-hot", scaler="minmax", outlier_detector=None, remove_uninformative_features=True, remove_correlated_features=True, feature_selector=None)
-    mi_models: list[experiment_model_tags] = ["lm", "dtree"][:1]
+    mi_models: list[tuple[experiment_model_tags, str | None]] = [("lm", None), ("dtree", None), ("gbc", "n_estimators"), ("gbc", "subsample"), ("gbc", "min_sample_split"), ("gbc", "max_depth")]
 
     #MachineLearningProcedure(preproc_pars, mi_models).main(["PPI"])
 
-    MachineLearningProcedure(preproc_pars, mi_models).main(["PPI", "PI", "SI", "ME"])
+    MachineLearningProcedure(preproc_pars, mi_models).main(["PPI", "PI", "SI", "ME"][:-1])

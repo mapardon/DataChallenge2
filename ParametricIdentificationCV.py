@@ -13,33 +13,26 @@ experiment_model_tags = Literal["lm", "dtree", "gbc"]
 experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier]
 
 
-class ModelExperimentResultOld:
-    def __init__(self, model_tag, model, par_tag, par_value, is_reg_model, is_bag=False, estimator_tag=None):
-        self.model_tag: str = model_tag
-        self.model = model
-        self.par_tag: str = par_tag
-        self.par_value: str | float | int | None = par_value
-        self.is_reg_model: bool = is_reg_model
-        self.is_bag: bool = is_bag  # if the method uses an estimator (other than itself)
-        self.estimator_tag: str | None = estimator_tag
-
-
 @dataclass
-class ModelExperimentParameters:
+class ModelExperimentConfiguration:
     experiment_type: Literal["PI", "SI"] | None = None
     model_tag: experiment_model_tags | None = None
     model: experiment_model_types | None = None
     is_reg_model: bool | None = None
     model_params: dict | None | None = None
+    is_bag: bool = False
+    estimator_model_tag: experiment_model_tags | None = None
 
     def __repr__(self):
         out = "{} ({})".format(self.model_tag, self.model_params)
+        if self.is_bag:
+            out += " @ {}".format(self.estimator_model_tag)
         return out
 
 
 @dataclass
 class ModelExperimentResult:
-    config: ModelExperimentParameters
+    config: ModelExperimentConfiguration
     f1: list[float]
 
     def __repr__(self):
@@ -84,7 +77,7 @@ class ParametricIdentificationCV:
             y_i_ts = y_i.iloc[n_rows_fold * i: n_rows_fold * (i + 1)]
 
             # fit and predict
-            model.fit(X_i_tr, y_i_tr)
+            model.fit(X_i_tr, y_i_tr.values.ravel())
             y_i_pred = np.clip(np.round(model.predict(X_i_ts)).astype(int), 1, 3) if is_reg_model else model.predict(X_i_ts).astype(int)
 
             # performance
