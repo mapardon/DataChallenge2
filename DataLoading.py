@@ -1,3 +1,6 @@
+import os
+import pathlib
+
 import pandas as pd
 
 
@@ -7,7 +10,7 @@ class DataLoading:
         self.labels: pd.DataFrame | None = None
         self.data_id: pd.Series | None = None
 
-    def load_data(self, features_src: str, labels_src: str | None, shuffle: bool = False):
+    def load_data(self, features_src: os.PathLike, labels_src: os.PathLike | None, shuffle: bool = False):
         self.features = pd.read_csv(features_src)
         if labels_src is not None:
             self.labels = pd.read_csv(labels_src)
@@ -38,9 +41,9 @@ class DataLoading:
 
 
 if __name__ == '__main__':
-    features = "data/train_features_short.csv"
-    labels = "data/train_labels_short.csv"
-    challenge = "data/challenge_features.csv"
+    features: os.PathLike = pathlib.Path("data/train_features_short.csv")
+    labels: os.PathLike = pathlib.Path("data/train_labels_short.csv")
+    challenge: os.PathLike = pathlib.Path("data/challenge_features.csv")
 
     dl = DataLoading()
     dl.load_data(features, labels, False)

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from Structs import PreprocessingParameters, PreprocessingOutput
 from typing import Literal
 
 import numpy as np
@@ -6,29 +6,6 @@ import pandas as pd
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-
-
-@dataclass
-class PreprocessingParameters:
-    numerizer: Literal["remove", "one-hot"] | None = None
-    scaler: Literal["minmax"] | None = None
-    outlier_detector: Literal[""] | None = None
-    remove_uninformative_features: bool = False
-    remove_correlated_features: bool = False
-    feature_selector: Literal["RFE"] | list | np.ndarray | None = None
-    feature_selection_prop: float | None = None
-
-    def __repr__(self):
-        out = "Preprocessing params: numerizer: {}, scaler: {}, outlier detector: {}, remove uninformative features: {}, remove correlated features: {}, feature selector: {} ({})"
-        return out.format(self.numerizer, self.scaler, self.outlier_detector, self.remove_uninformative_features, self.remove_correlated_features, self.feature_selector, self.feature_selection_prop)
-
-
-@dataclass
-class PreprocessingOutput:
-    outliers_detection_res: int | None = None
-    uninformative_features: list[str] | None = None
-    correlated_features: list[str] | None = None
-    selected_features: str | None = None
 
 
 class DataPreprocessing:
@@ -160,5 +137,8 @@ class DataPreprocessing:
             raise Warning("Invalid feature selector provided")
 
         # keep best-ranked features
-        self.features = self.features[features_to_select]
+        try:
+            self.features = self.features[features_to_select]
+        except Exception as e:
+            print()
         return features_to_select

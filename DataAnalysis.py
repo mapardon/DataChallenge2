@@ -1,11 +1,14 @@
+import os
+import pathlib
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from DataLoading import DataLoading
 
-FEATURES_SRC = "data/train_features.csv"
-LABELS_SRC = "data/train_labels.csv"
-VISUALS = "data/visuals/"
+FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features.csv")
+LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels.csv")
+VISUALS: os.PathLike = pathlib.Path("data/visuals/")
 
 
 class DataAnalysis:
