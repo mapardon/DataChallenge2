@@ -5,8 +5,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeClassifier
 
-from ParametricIdentificationCV import ParametricIdentificationCV, ModelExperimentResult, ModelExperimentConfiguration, \
-    experiment_model_tags
+from Structs import ModelExperimentTagParam, ModelExperimentConfiguration, ModelExperimentResult
+from ParametricIdentificationCV import ParametricIdentificationCV
 
 
 class ParametricIdentification(ParametricIdentificationCV):
@@ -17,12 +17,11 @@ class ParametricIdentification(ParametricIdentificationCV):
     def __init__(self, train_features: pd.DataFrame, train_labels: pd.DataFrame, cv_folds: int):
         super().__init__(train_features, train_labels, cv_folds)
 
-    def parametric_identification(self, configs: list[tuple[experiment_model_tags, str | None]]) -> list[ModelExperimentResult]:
-        for config in configs:
-            if config[1] is None:
-                {"lm": self.lm, "dtree": self.dtree}[config[0]]()
-            else:
-                {"gbc": self.gbc}[config[0]](config[1])
+    def parametric_identification(self, config: ModelExperimentTagParam) -> list[ModelExperimentResult]:
+        if config.model_param is None:
+            {"lm": self.lm, "dtree": self.dtree}[config.model_tag]()
+        else:
+            {"gbc": self.gbc}[config.model_tag](config.model_param)
 
         return sorted(self.candidates, reverse=True, key=lambda x: statistics.mean(x.f1))
 

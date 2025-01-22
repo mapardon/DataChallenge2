@@ -1,46 +1,8 @@
-import statistics
-from dataclasses import dataclass
-from typing import Literal, Union
+from Structs import ModelExperimentResult
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import f1_score
-from sklearn.tree import DecisionTreeClassifier
-
-experiment_model_tags = Literal["lm", "dtree", "gbc"]
-experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier]
-
-
-@dataclass
-class ModelExperimentConfiguration:
-    experiment_type: Literal["PI", "SI"] | None = None
-    model_tag: experiment_model_tags | None = None
-    model: experiment_model_types | None = None
-    is_reg_model: bool | None = None
-    model_params: dict | None | None = None
-    is_bag: bool = False
-    estimator_model_tag: experiment_model_tags | None = None
-
-    def __repr__(self):
-        out = "{} ({})".format(self.model_tag, self.model_params)
-        if self.is_bag:
-            out += " @ {}".format(self.estimator_model_tag)
-        return out
-
-
-@dataclass
-class ModelExperimentResult:
-    config: ModelExperimentConfiguration
-    f1: list[float]
-
-    def __repr__(self):
-        if len(self.f1) > 1:
-            out = "configuration: {}, performance: avg {}, min {}, max {}".format(self.config, round(statistics.mean(self.f1), 4), round(min(self.f1), 4), round(max(self.f1), 4))
-        else:
-            out = "configuration: {}, performance: {}".format(self.config, round(self.f1[0], 4))
-        return out
 
 
 class ParametricIdentificationCV:

@@ -1,3 +1,5 @@
+import os
+import pathlib
 import statistics
 from math import ceil
 from typing import Literal
@@ -7,29 +9,29 @@ import pandas as pd
 
 from DataAnalysis import DataAnalysis
 from DataLoading import DataLoading
-from DataPreprocessing import DataPreprocessing, PreprocessingParameters
-from ParametricIdentificationCV import ModelExperimentResult
-from ParametricIdentification import ParametricIdentification, experiment_model_tags
-from PreprocessingIdentification import PreprocessingIdentification, PreprocExperimentResult
+from DataPreprocessing import DataPreprocessing
+from ParametricIdentification import ParametricIdentification
+from PreprocessingIdentification import PreprocessingIdentification
 from StructuralIdentification import StructuralIdentification
+from Structs import ModelExperimentBooter, PreprocessingParameters, ModelExperimentResult, PreprocExperimentResult
 
-SHORT = True
+SHORT = False
 
 if SHORT:
-    FEATURES_SRC = "data/train_features_short.csv"
-    LABELS_SRC = "data/train_labels_short.csv"
-    CHALLENGE_SRC = "data/train_features_short.csv"
+    FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features_short.csv")
+    LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels_short.csv")
+    CHALLENGE_SRC: os.PathLike = pathlib.Path("data/train_features_short.csv")
 
 else:
-    FEATURES_SRC = "data/train_features.csv"
-    LABELS_SRC = "data/train_labels.csv"
-    CHALLENGE_SRC = "data/challenge_features.csv"
+    FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features.csv")
+    LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels.csv")
+    CHALLENGE_SRC: os.PathLike = pathlib.Path("data/challenge_features.csv")
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: list[tuple[experiment_model_tags, str | None]] | None):
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: list[ModelExperimentBooter] | None):
         self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
-        self.mi_configs: list[tuple[experiment_model_tags, str | None]] | None = mi_configs
+        self.mi_configs: list[ModelExperimentBooter] | None = mi_configs
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
 
@@ -48,7 +50,9 @@ class MachineLearningProcedure:
         if "PI" in modes:
             if self.mi_configs is None:
                 raise Warning("No model has been provided for model identification")
-            self.parametric_identification()
+            # TODO parallelize
+            for mi_config in self.mi_configs:
+                self.parametric_identification(mi_config)
 
         if "SI" in modes:
             self.structural_identification()
@@ -58,7 +62,7 @@ class MachineLearningProcedure:
 
     # PREPROCESSING IDENTIFICATION
 
-    def preprocessing_identification(self):
+    def preprocessing_identification(self) -> None:
         dl = DataLoading()
         dl.load_data(FEATURES_SRC, LABELS_SRC, False)
         features, labels = dl.get_train_dataset()
@@ -127,65 +131,76 @@ class MachineLearningProcedure:
         ppi_candidates.extend(tmp)
         tmp.clear()
 
-        # Combination of better-performing features
+        # Combination of best-performing features
         ppi_candidates.append(ppi.preprocessing_identification(best_preproc_params_combination))
 
-        # Keep config having shown best results & display results
+        # Store config having shown best results
         ppi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1_scores))
         self.preproc_params = ppi_candidates[0].configuration
         self.preproc_params.feature_selector = ppi_candidates[0].preprocessing_output[0].selected_features
 
+        # Display results
         print("\n * Preprocessing Identification *")
         for ppi_c in ppi_candidates:
             print(ppi_c)
 
     # MODEL IDENTIFICATION
 
-    def load_and_preprocess_dataset(self, config: PreprocessingParameters):
-        dl = DataLoading()
-        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
-        train_features, train_labels = dl.get_train_dataset()
+    def load_datasets(self, features_src: os.PathLike | None = None, labels_src: os.PathLike | None = None) -> None:
+        """ NB: If this method (and so does load_and_preprocessing_datasets) is called from parametric identification,
+        datasets will be split between train and validations sets, even if validation sets will not be used in the
+        cross-validation loop. This is done to perform parametric identification and structural identification in the
+        same conditions (i.e., models trained more in parametric identification). """
 
-        dp = DataPreprocessing(train_features, train_labels, None)
+        dl = DataLoading()
+        if None not in [features_src, labels_src]:
+            dl.load_data(features_src, labels_src, True)
+        else:
+            dl.load_data(FEATURES_SRC, LABELS_SRC, True)
+        self.train_features, self.train_labels, self.validation_features, self.validation_labels = DataPreprocessing(*dl.get_train_dataset(), None).get_train_validation_datasets()
+
+    def load_and_preprocess_datasets(self, config: PreprocessingParameters) -> None:
+        self.load_datasets()
+
+        dp = DataPreprocessing(self.train_features, self.train_labels, None)
         dp.preprocessing(config)
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
 
-    def parametric_identification(self):
+    def parametric_identification(self, mi_config: ModelExperimentBooter) -> None:
         # TODO several experiments with reshuffling (?)
 
         # Load data
-        if self.preproc_params is not None:
-            self.load_and_preprocess_dataset(self.preproc_params)
+        if self.train_features is None or self.train_labels is None:
 
-        else:  # load precomputed preprocessed datasets
-            self.train_features, self.train_labels, self.validation_features, self.validation_labels = None, None, None, None
-            print("/!/ Datasets not loaded")
-            return
+            if self.preproc_params is not None:  # use result of preprocessing identification or suer specified preprocessing parameters
+                self.load_and_preprocess_datasets(self.preproc_params)
+
+            else:  # load precomputed preprocessed datasets
+                self.load_datasets(*mi_config.datasets_src)
 
         # Parametric identification
         pi = ParametricIdentification(self.train_features, self.train_labels, 5)
-        self.pi_candidates = pi.parametric_identification(self.mi_configs)
+        self.pi_candidates = pi.parametric_identification(mi_config.model)
 
         print("\n * Parametric Identification *")
         for pi_c in self.pi_candidates:
             print(pi_c)
 
-    def structural_identification(self):
+    def structural_identification(self) -> None:
         """ Tournament between the best MI candidates on unused validation set """
 
-        # Load data (incase data loaded during parametric identification)
-        if self.train_features is None:
-            if self.preproc_params is not None:
-                self.load_and_preprocess_dataset(self.preproc_params)
+        # Load data (incase data not loaded during parametric identification)
+        if None in [self.train_features, self.train_labels, self.validation_features, self.validation_labels]:
 
-            else:  # load precomputed preprocessed datasets
-                self.train_features, self.train_labels, self.validation_features, self.validation_labels = None, None, None, None
-                print("/!/ Datasets not loaded")
-                return
+            if self.preproc_params is not None:
+                self.load_and_preprocess_datasets(self.preproc_params)
+
+            else:
+                raise Warning("Data couldn't be loaded before structural identification.")
 
         # Structural identification
         si = StructuralIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels)
-        si_candidates = si.model_selection(self.pi_candidates[:ceil(len(self.pi_candidates) * 0.25)])
+        si_candidates = si.model_selection([pi_candidate.config for pi_candidate in self.pi_candidates[:ceil(len(self.pi_candidates) * 0.25)]])
         self.final_model_candidate = si_candidates[0]
 
         print("\n * Structural Identification *")
@@ -194,7 +209,7 @@ class MachineLearningProcedure:
 
     # MODEL EXPLOITATION
 
-    def model_exploitation(self):
+    def model_exploitation(self) -> None:
         """ Use the models and preprocessing parameters having shown the best performance during training
         to predict challenge data """
 

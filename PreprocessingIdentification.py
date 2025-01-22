@@ -1,34 +1,9 @@
-import statistics
-
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from DataPreprocessing import PreprocessingParameters, DataPreprocessing, PreprocessingOutput
+from DataPreprocessing import DataPreprocessing
+from Structs import PreprocessingParameters, PreprocExperimentResult
 from ParametricIdentificationCV import ParametricIdentificationCV
-
-
-class PreprocExperimentResult:
-    def __init__(self, configuration: PreprocessingParameters, performance: list[float], preprocessing_output: list[PreprocessingOutput]):
-        self.configuration: PreprocessingParameters = configuration
-        self.f1_scores: list[float] = performance
-        self.preprocessing_output: list[PreprocessingOutput] = preprocessing_output
-
-    def __repr__(self):
-        out = "\nPreprocessing Experiment\n {}\n performance: {} ()".format(self.configuration, round(statistics.mean(self.f1_scores), 4), round(statistics.stdev(self.f1_scores), 4))
-
-        if self.configuration.outlier_detector is not None:
-            out += "\n n_outliers_removed: {}-{}".format(min(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res, max(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res)
-
-        if self.configuration.remove_uninformative_features:
-            out += "\n uninformative features removed: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.uninformative_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.uninformative_features])]))
-
-        if self.configuration.remove_correlated_features:
-            out += "\n correlated features removed: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.correlated_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.correlated_features])]))
-
-        if self.configuration.feature_selector is not None:
-            out += "\n features selected: {}".format(", ".join(["{} ({})".format(feat, [feat for res in self.preprocessing_output for feat in res.selected_features].count(feat)) for feat in set([feat for res in self.preprocessing_output for feat in res.selected_features])]))
-
-        return out
 
 
 class PreprocessingIdentification:
