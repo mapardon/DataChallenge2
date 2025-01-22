@@ -2,6 +2,7 @@ import os
 import pathlib
 import statistics
 from math import ceil
+from multiprocessing import Process, Queue
 from typing import Literal
 
 import numpy as np
@@ -50,9 +51,19 @@ class MachineLearningProcedure:
         if "PI" in modes:
             if self.mi_configs is None:
                 raise Warning("No model has been provided for model identification")
-            # TODO parallelize
+
+            procs: list[Process] = list()
+            pipe: Queue = Queue()
             for mi_config in self.mi_configs:
-                self.parametric_identification(mi_config)
+                procs.append(Process(target=self.parametric_identification_wrapper, args=(mi_config, pipe)))
+
+            [p.start() for p in procs]
+            [p.join() for p in procs]
+
+            while not pipe.empty():
+                self.pi_candidates.extend(pipe.get())
+
+            self.pi_candidates.sort(reverse=True, key=lambda x: statistics.mean(x.f1))
 
         if "SI" in modes:
             self.structural_identification()
@@ -166,11 +177,15 @@ class MachineLearningProcedure:
         dp.preprocessing(config)
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
 
-    def parametric_identification(self, mi_config: ModelExperimentBooter) -> None:
+    def parametric_identification_wrapper(self, mi_config: ModelExperimentBooter, pipe: Queue):
+        self.parametric_identification(mi_config)
+        pipe.put(self.pi_candidates)
+
+    def parametric_identification(self, mi_config: ModelExperimentBooter):
         # TODO several experiments with reshuffling (?)
 
         # Load data
-        if self.train_features is None or self.train_labels is None:
+        if any(_ is None for _ in [self.train_features, self.train_labels]):
 
             if self.preproc_params is not None:  # use result of preprocessing identification or suer specified preprocessing parameters
                 self.load_and_preprocess_datasets(self.preproc_params)
@@ -190,7 +205,7 @@ class MachineLearningProcedure:
         """ Tournament between the best MI candidates on unused validation set """
 
         # Load data (incase data not loaded during parametric identification)
-        if None in [self.train_features, self.train_labels, self.validation_features, self.validation_labels]:
+        if any(_ is None for _ in [self.train_features, self.train_labels, self.validation_features, self.validation_labels]):
 
             if self.preproc_params is not None:
                 self.load_and_preprocess_datasets(self.preproc_params)

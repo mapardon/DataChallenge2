@@ -23,7 +23,7 @@ class ParametricIdentification(ParametricIdentificationCV):
         else:
             {"gbc": self.gbc}[config.model_tag](config.model_param)
 
-        return sorted(self.candidates, reverse=True, key=lambda x: statistics.mean(x.f1))
+        return self.candidates
 
     def lm(self):
         lm = LinearRegression()
