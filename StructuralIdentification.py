@@ -23,6 +23,7 @@ class StructuralIdentification:
     def model_selection(self, pi_candidates: list[ModelExperimentConfiguration]) -> list[ModelExperimentResult]:
         for c in pi_candidates:
             m = c.model
+            # FIXME no need to recompute
             m.fit(self.train_features, self.train_labels.values.ravel())
             y_i_vs_pred = np.clip(np.round(m.predict(self.validation_features)).astype(int), 1, 3) if c.is_reg_model else m.predict(self.validation_features).astype(int)
             f1 = f1_score(self.validation_labels, y_i_vs_pred, average='micro')

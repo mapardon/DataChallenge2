@@ -15,19 +15,28 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeClassifier
 
 
+"""
+    Preprocessing experiments
+"""
+
+
 @dataclass
 class PreprocessingParameters:
     numerizer: Literal["remove", "one-hot"] | None = None
     scaler: Literal["minmax"] | None = None
-    outlier_detector: Literal[""] | None = None
+    outlier_detector: Literal["lof"] | None = None
+    outlier_detector_nn: int = 0
     remove_uninformative_features: bool = False
     remove_correlated_features: bool = False
     feature_selector: Literal["RFE"] | list | np.ndarray | None = None
     feature_selection_prop: float | None = None
 
     def __repr__(self):
-        out = "Preprocessing params: numerizer: {}, scaler: {}, outlier detector: {}, remove uninformative features: {}, remove correlated features: {}, feature selector: {} ({})"
-        return out.format(self.numerizer, self.scaler, self.outlier_detector, self.remove_uninformative_features, self.remove_correlated_features, self.feature_selector, self.feature_selection_prop)
+        out = "Preprocessing params: numerizer: {}, scaler: {}, outlier detector: {} ({}), "
+        out += "remove uninformative features: {}, remove correlated features: {}, feature selector: {} ({})"
+        return out.format(self.numerizer, self.scaler, self.outlier_detector, self.outlier_detector_nn,
+                          self.remove_uninformative_features, self.remove_correlated_features, self.feature_selector,
+                          self.feature_selection_prop)
 
 
 @dataclass
@@ -45,7 +54,7 @@ class PreprocExperimentResult:
         self.preprocessing_output: list[PreprocessingOutput] = preprocessing_output
 
     def __repr__(self):
-        out = "\nPreprocessing Experiment\n {}\n performance: {} ()".format(self.configuration, round(statistics.mean(self.f1_scores), 4), round(statistics.stdev(self.f1_scores), 4))
+        out = "\nPreprocessing Experiment\n {}\n performance: {} ({})".format(self.configuration, round(statistics.mean(self.f1_scores), 4), round(statistics.stdev(self.f1_scores), 4))
 
         if self.configuration.outlier_detector is not None:
             out += "\n n_outliers_removed: {}-{}".format(min(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res, max(self.preprocessing_output, key=lambda x: x.outliers_detection_res).outliers_detection_res)
@@ -61,6 +70,10 @@ class PreprocExperimentResult:
 
         return out
 
+
+"""
+    Model experiments
+"""
 
 experiment_model_tags = Literal["lm", "dtree", "gbc"]
 experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier]

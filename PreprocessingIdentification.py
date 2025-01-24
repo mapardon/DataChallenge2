@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 
 from DataPreprocessing import DataPreprocessing
 from Structs import PreprocessingParameters, PreprocExperimentResult
@@ -24,6 +25,7 @@ class PreprocessingIdentification:
         """
 
         lm = LinearRegression()
+        lr = LogisticRegression(max_iter=5000)
         ppe_res = PreprocExperimentResult(configuration, list(), list())
 
         for _ in range(self.n_experiments):

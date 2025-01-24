@@ -1,3 +1,5 @@
+from sklearn.neighbors import LocalOutlierFactor
+
 from Structs import PreprocessingParameters, PreprocessingOutput
 from typing import Literal
 
@@ -33,7 +35,7 @@ class DataPreprocessing:
             self.features_scaling(pars.scaler)
 
         if pars.outlier_detector is not None:
-            res.outliers_detection_res = self.outlier_detection(pars.outlier_detector)
+            res.outliers_detection_res = self.outlier_detection(pars.outlier_detector, pars.outlier_detector_nn)
 
         if pars.remove_uninformative_features:
             res.uninformative_features = self.remove_uninformative_features()
@@ -77,8 +79,21 @@ class DataPreprocessing:
             scaler = MinMaxScaler()
             self.features[self.features.select_dtypes([np.number]).columns] = scaler.fit_transform(self.features.select_dtypes([np.number]))
 
-    def outlier_detection(self, outlier_detector: Literal[""]):
-        pass
+    def outlier_detection(self, outlier_detector: Literal["lof"], nn=0) -> int:
+        """ :returns: Number of outliers removed """
+
+        n_removed = int()
+        if nn > 1:
+
+            if outlier_detector == "lof":
+                num_features = self.features.select_dtypes([np.number])
+                lof = LocalOutlierFactor(n_neighbors=nn)
+                idx = np.where(lof.fit_predict(num_features) > 0, True, False)  # lof returns -1/1 which we convert to use results as indexes
+                n_removed = num_features.shape[0] - np.sum(idx)
+                self.features = self.features[idx].reset_index(drop=True)
+                self.labels = self.labels[idx].reset_index(drop=True)
+
+        return n_removed
 
     def remove_uninformative_features(self) -> list[str]:
         """
