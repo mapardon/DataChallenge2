@@ -23,10 +23,10 @@ class StructuralIdentification:
     def model_selection(self, pi_candidates: list[ModelExperimentConfiguration]) -> list[ModelExperimentResult]:
         for c in pi_candidates:
             m = c.model
-            # FIXME no need to recompute
-            m.fit(self.train_features, self.train_labels.values.ravel())
+            if not [v for v in vars(m) if v.endswith("_") and not v.startswith("__")]:  # check if model already fitted
+                m.fit(self.train_features, self.train_labels.values.ravel())
             y_i_vs_pred = np.clip(np.round(m.predict(self.validation_features)).astype(int), 1, 3) if c.is_reg_model else m.predict(self.validation_features).astype(int)
             f1 = f1_score(self.validation_labels, y_i_vs_pred, average='micro')
             self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("SI", c.model_tag, m, c.is_reg_model, c.model_params), [f1]))
 
-        return sorted(self.candidates, reverse=True, key=lambda x: x.f1)
+        return sorted(self.candidates, reverse=True, key=lambda x: x.f1_scores)

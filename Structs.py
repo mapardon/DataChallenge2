@@ -19,6 +19,8 @@ from sklearn.tree import DecisionTreeClassifier
     Preprocessing experiments
 """
 
+experiment_result_sorting_param = {"reverse": True, "key": lambda x: statistics.mean(x.f1_scores)}
+
 
 @dataclass
 class PreprocessingParameters:
@@ -87,8 +89,9 @@ class ModelExperimentTagParam:
 
 @dataclass
 class ModelExperimentBooter:
-    model: ModelExperimentTagParam
-    datasets_src: PreprocessingParameters | tuple[os.PathLike, os.PathLike]
+    model_tag_param: list[ModelExperimentTagParam]
+    preproc_params: PreprocessingParameters | None = None
+    datasets_src: tuple[os.PathLike, os.PathLike] | None = None
 
 
 @dataclass
@@ -111,11 +114,11 @@ class ModelExperimentConfiguration:
 @dataclass
 class ModelExperimentResult:
     config: ModelExperimentConfiguration
-    f1: list[float]
+    f1_scores: list[float]
 
     def __repr__(self):
-        if len(self.f1) > 1:
-            out = "configuration: {}, performance: avg {}, min {}, max {}".format(self.config, round(statistics.mean(self.f1), 4), round(min(self.f1), 4), round(max(self.f1), 4))
+        if len(self.f1_scores) > 1:
+            out = "configuration: {}, performance: avg {}, min {}, max {}".format(self.config, round(statistics.mean(self.f1_scores), 4), round(min(self.f1_scores), 4), round(max(self.f1_scores), 4))
         else:
-            out = "configuration: {}, performance: {}".format(self.config, round(self.f1[0], 4))
+            out = "configuration: {}, performance: {}".format(self.config, round(self.f1_scores[0], 4))
         return out

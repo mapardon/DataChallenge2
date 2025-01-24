@@ -4,12 +4,19 @@ from MachineLearningProcedure import MachineLearningProcedure
 
 if __name__ == '__main__':
 
-    preproc_pars = PreprocessingParameters(numerizer="one-hot", scaler="minmax", outlier_detector=None, remove_uninformative_features=True, remove_correlated_features=True, feature_selector=None)
-    mi_models: list[ModelExperimentBooter] = [ModelExperimentBooter(ModelExperimentTagParam("lm", None), preproc_pars), ModelExperimentBooter(ModelExperimentTagParam("dtree", None), preproc_pars),
-                                              ModelExperimentBooter(ModelExperimentTagParam("gbc", "n_estimators"), preproc_pars), ModelExperimentBooter(ModelExperimentTagParam("gbc", "subsample"), preproc_pars),
-                                              ModelExperimentBooter(ModelExperimentTagParam("gbc", "min_sample_split"), preproc_pars), ModelExperimentBooter(ModelExperimentTagParam("gbc", "max_depth"), preproc_pars)]
+    preproc_pars = PreprocessingParameters(numerizer="one-hot", scaler="minmax", outlier_detector=None,
+                                           remove_uninformative_features=True, remove_correlated_features=True,
+                                           feature_selector=None)
+    model_tags_params: list[ModelExperimentTagParam] = [ModelExperimentTagParam("lm", None),
+                                                        ModelExperimentTagParam("dtree", None),
+                                                        ModelExperimentTagParam("gbc", "n_estimators"),
+                                                        ModelExperimentTagParam("gbc", "subsample"),
+                                                        ModelExperimentTagParam("gbc", "min_sample_split"),
+                                                        ModelExperimentTagParam("gbc", "max_depth")]
 
-    #mp: MachineLearningProcedure = MachineLearningProcedure()
-    #MachineLearningProcedure(None, mi_models).main(["SI", "ME"])
+    model_tags_params = model_tags_params[:2]
+    mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, preproc_pars, None)
 
-    MachineLearningProcedure(None, mi_models).main(["PPI"])
+    print(mi_configs)
+
+    MachineLearningProcedure(None, mi_configs).main(["PI", "SI", "ME"])

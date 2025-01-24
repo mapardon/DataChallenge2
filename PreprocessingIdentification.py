@@ -25,7 +25,6 @@ class PreprocessingIdentification:
         """
 
         lm = LinearRegression()
-        lr = LogisticRegression(max_iter=5000)
         ppe_res = PreprocExperimentResult(configuration, list(), list())
 
         for _ in range(self.n_experiments):

@@ -152,8 +152,6 @@ class DataPreprocessing:
             raise Warning("Invalid feature selector provided")
 
         # keep best-ranked features
-        try:
-            self.features = self.features[features_to_select]
-        except Exception as e:
-            print()
+        self.features = self.features[features_to_select]
+
         return features_to_select
