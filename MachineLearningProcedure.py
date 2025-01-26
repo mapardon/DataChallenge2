@@ -34,7 +34,7 @@ else:
 
 class MachineLearningProcedure:
     def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: ModelExperimentBooter | None):
-        self.preproc_params: PreprocessingParameters | None = preproc_params  # can be specified to skip preproc identification
+        self.preproc_params: PreprocessingParameters | None = preproc_params  # allow skip preproc identification
         self.mi_configs: ModelExperimentBooter | None = mi_configs
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
@@ -60,18 +60,18 @@ class MachineLearningProcedure:
 
             # Run experiments
             procs: list[Process] = list()
-            pipe: Queue = Queue()
+            queue: Queue = Queue()
             for mi_config in self.mi_configs.model_tag_param:
-                procs.append(Process(target=self.parametric_identification_wrapper, args=(mi_config, pipe)))
+                procs.append(Process(target=self.parametric_identification_wrapper, args=(mi_config, queue)))
 
             [p.start() for p in procs]
-            print("1")
+
+            while not queue.empty() or any(p.is_alive() for p in procs):
+                while not queue.empty():
+                    self.pi_candidates.extend(queue.get())
+
             [p.join() for p in procs]
-
-            print("2")
-
-            while not pipe.empty():
-                self.pi_candidates.extend(pipe.get())
+            queue.close()
 
         if "SI" in modes:
             self.structural_identification()
@@ -222,7 +222,8 @@ class MachineLearningProcedure:
 
     def parametric_identification_wrapper(self, model_tag_param: ModelExperimentTagParam, pipe: Queue):
         self.parametric_identification(model_tag_param)
-        pipe.put(copy.deepcopy(self.pi_candidates))
+        tmp = copy.deepcopy(self.pi_candidates)
+        pipe.put(tmp)
 
     def parametric_identification(self, model_tag_param: ModelExperimentTagParam):
 

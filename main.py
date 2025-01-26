@@ -17,6 +17,4 @@ if __name__ == '__main__':
     model_tags_params = model_tags_params[:2]
     mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, preproc_pars, None)
 
-    print(mi_configs)
-
-    MachineLearningProcedure(None, mi_configs).main(["PI", "SI", "ME"])
+    MachineLearningProcedure(None, mi_configs).main(["PPI"])
