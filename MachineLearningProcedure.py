@@ -1,8 +1,10 @@
 import copy
 import os
 import pathlib
+import shelve
 import statistics
 import sys
+import warnings
 from math import ceil
 from multiprocessing import Process, Queue
 from typing import Literal
@@ -208,14 +210,14 @@ class MachineLearningProcedure:
         # Load data
         if any(_ is None for _ in [self.train_features, self.train_labels]):
 
-            if self.preproc_params is not None:  # use result of preprocessing identification or user specified preprocessing parameters
-                self.load_and_preprocess_datasets(self.preproc_params)
-
-            elif preproc_params is not None:
+            if preproc_params is not None:
                 self.load_and_preprocess_datasets(preproc_params)
 
             elif datasets_src is not None:  # load precomputed preprocessed datasets
                 self.load_datasets(*datasets_src)
+
+            elif self.preproc_params is not None:  # use result of preprocessing identification or user specified preprocessing parameters
+                self.load_and_preprocess_datasets(self.preproc_params)
 
             else:
                 raise Warning("Couldn't load datasets for parametric identification")
@@ -255,6 +257,9 @@ class MachineLearningProcedure:
         si_candidates.sort(**experiment_result_sorting_param)
         self.final_model_candidate = si_candidates[0]
 
+        with shelve.open("save-models") as db:
+            db["pi-candidates"] = self.pi_candidates
+
         print("\n * Structural Identification *")
         for si_c in si_candidates:
             print(si_c)
@@ -264,6 +269,10 @@ class MachineLearningProcedure:
     def model_exploitation(self) -> None:
         """ Use the models and preprocessing parameters having shown the best performance during training
         to predict challenge data """
+
+        if self.preproc_params.outlier_detector is not None:
+            self.preproc_params.outlier_detector = None
+            warnings.warn("Outlier detector has been specified for model exploitation. Denying it before continuing.")
 
         # load challenge data
         dl = DataLoading()

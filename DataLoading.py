@@ -20,7 +20,8 @@ class DataLoading:
             else:
                 _ = self.labels.pop("building_id")
 
-        self.data_id = self.features.pop("building_id")
+        if "building_id" in self.features:
+            self.data_id = self.features.pop("building_id")
 
     def shuffle_dataset(self):
         ds = pd.concat([self.features, self.labels[self.labels.columns.to_list()[-1]]], axis="columns")  # drop building_id in labels to avoid same column name after concat
