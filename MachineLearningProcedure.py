@@ -5,6 +5,7 @@ import shelve
 import statistics
 import sys
 import warnings
+from datetime import datetime
 from math import ceil
 from multiprocessing import Process, Queue
 from typing import Literal
@@ -59,6 +60,7 @@ class MachineLearningProcedure:
 
             # Load data
             self.model_experiment_data_prep(self.mi_configs.preproc_params, self.mi_configs.datasets_src)
+            # FIXME: we don't keep track of data preprocessing output (in particular, no way to know which feature shave been selected for an eventual model explotiation later)
 
             # Run experiments
             procs: list[Process] = list()
@@ -197,7 +199,8 @@ class MachineLearningProcedure:
         self.load_datasets()
 
         dp = DataPreprocessing(self.train_features, self.train_labels, None)
-        dp.preprocessing(config)
+        out = dp.preprocessing(config)
+        self.preproc_params.feature_selector = out.selected_features  # If we process dataset here, changes must be kept for possible ME phase
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
 
     def model_experiment_data_prep(self, preproc_params: PreprocessingParameters = None, datasets_src: tuple[os.PathLike, os.PathLike] = None) -> None:
@@ -253,12 +256,13 @@ class MachineLearningProcedure:
         # Structural identification
         si = StructuralIdentification(self.train_features, self.train_labels, self.validation_features, self.validation_labels)
         self.pi_candidates.sort(**experiment_result_sorting_param)
-        si_candidates = si.model_selection([pi_candidate.config for pi_candidate in self.pi_candidates[:ceil(len(self.pi_candidates) * 0.25)]])
+        si_candidates = si.model_selection([pi_candidate.config for pi_candidate in self.pi_candidates[:max(1, ceil(len(self.pi_candidates) * 0.25))]])
         si_candidates.sort(**experiment_result_sorting_param)
         self.final_model_candidate = si_candidates[0]
 
-        with shelve.open("save-models") as db:
-            db["pi-candidates"] = self.pi_candidates
+        if not SHORT:
+            with shelve.open("save-models") as db:
+                db["pi-candidates-{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))] = self.pi_candidates
 
         print("\n * Structural Identification *")
         for si_c in si_candidates:

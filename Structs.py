@@ -12,6 +12,7 @@ from typing import Literal, Union
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 
@@ -77,8 +78,8 @@ class PreprocExperimentResult:
     Model experiments
 """
 
-experiment_model_tags = Literal["lm", "dtree", "gbc"]
-experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier]
+experiment_model_tags = Literal["lm", "dtree", "gbc", "knn"]
+experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier, KNeighborsClassifier]
 
 
 @dataclass
