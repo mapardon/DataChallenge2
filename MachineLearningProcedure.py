@@ -20,7 +20,7 @@ from ParametricIdentification import ParametricIdentification
 from PreprocessingIdentification import PreprocessingIdentification
 from StructuralIdentification import StructuralIdentification
 from Structs import ModelExperimentBooter, PreprocessingParameters, ModelExperimentResult, PreprocExperimentResult, \
-    ModelExperimentTagParam, experiment_result_sorting_param
+    ModelExperimentTagParam, experiment_result_sorting_param, STORAGE, ChallDataSource
 
 SHORT = bool(int(sys.argv[1])) if len(sys.argv) > 1 else True
 
@@ -36,8 +36,9 @@ else:
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: ModelExperimentBooter | None):
-        self.preproc_params: PreprocessingParameters | None = preproc_params  # allow skip preproc identification
+    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: ModelExperimentBooter | None,
+                 chall_data_src: ChallDataSource):
+        self.preproc_params: PreprocessingParameters | None = preproc_params  # allow to skip preproc identification
         self.mi_configs: ModelExperimentBooter | None = mi_configs
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
@@ -46,6 +47,7 @@ class MachineLearningProcedure:
         self.train_labels: pd.DataFrame | None = None
         self.validation_features: pd.DataFrame | None = None
         self.validation_labels: pd.DataFrame | None = None
+        self.chall_data_src: ChallDataSource = chall_data_src
 
     def main(self, modes: list[Literal["DA", "PPI", "PI", "SI", "ME"]]):
         if "DA" in modes:
@@ -60,7 +62,7 @@ class MachineLearningProcedure:
 
             # Load data
             self.model_experiment_data_prep(self.mi_configs.preproc_params, self.mi_configs.datasets_src)
-            # FIXME: we don't keep track of data preprocessing output (in particular, no way to know which feature shave been selected for an eventual model explotiation later)
+            # FIXME: we don't keep track of data preprocessing output (in particular, no way to know which feature shave been selected for an eventual model exploitation later)
 
             # Run experiments
             procs: list[Process] = list()
@@ -218,6 +220,8 @@ class MachineLearningProcedure:
 
             elif datasets_src is not None:  # load precomputed preprocessed datasets
                 self.load_datasets(*datasets_src)
+                with shelve.open(STORAGE) as db:
+                    self.preproc_params = db[str(datasets_src[0])]  # preprocessing params are stored in the db with key = features file path
 
             elif self.preproc_params is not None:  # use result of preprocessing identification or user specified preprocessing parameters
                 self.load_and_preprocess_datasets(self.preproc_params)
@@ -280,13 +284,14 @@ class MachineLearningProcedure:
 
         # load challenge data
         dl = DataLoading()
-        dl.load_data(CHALLENGE_SRC, None, False)
+        dl.load_data(self.chall_data_src.dataset_src, None, False)
         features, data_id = dl.get_challenge_dataset()
 
         # preprocess challenge data
-        dp = DataPreprocessing(features, None, data_id)
-        dp.preprocessing(self.preproc_params)
-        features, data_id = dp.get_challenge_dataset()
+        if not self.chall_data_src.ds_src_is_preproc:
+            dp = DataPreprocessing(features, None, data_id)
+            dp.preprocessing(self.preproc_params)
+            features, data_id = dp.get_challenge_dataset()
 
         # predict challenge data
         model, is_reg_model = self.final_model_candidate.config.model, self.final_model_candidate.config.is_reg_model

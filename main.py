@@ -1,7 +1,7 @@
 import pathlib
 import sys
 
-from Structs import ModelExperimentTagParam, ModelExperimentBooter, PreprocessingParameters
+from Structs import ModelExperimentTagParam, ModelExperimentBooter, PreprocessingParameters, ChallDataSource
 
 from MachineLearningProcedure import MachineLearningProcedure
 
@@ -43,5 +43,7 @@ if __name__ == '__main__':
     model_tags_params = [ModelExperimentTagParam("lm", None), ModelExperimentTagParam("knn", None)]
 
     mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, None, None)
+
+    chall_data_src: ChallDataSource = ChallDataSource("data/challenge_features_preprocessed.csv")
 
     MachineLearningProcedure(preproc_pars, mi_configs).main(["PI", "SI", "ME"])

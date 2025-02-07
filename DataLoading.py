@@ -17,7 +17,8 @@ class DataLoading:
 
             if shuffle:
                 self.shuffle_dataset()
-            else:
+
+            if "building_id" in self.features:
                 _ = self.labels.pop("building_id")
 
         if "building_id" in self.features:

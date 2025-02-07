@@ -4,7 +4,7 @@
 """
 
 
-import os
+import pathlib
 import statistics
 from dataclasses import dataclass
 from typing import Literal, Union
@@ -14,6 +14,12 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+
+"""
+    Disk storage
+"""
+
+STORAGE = "save-models"
 
 
 """
@@ -92,7 +98,8 @@ class ModelExperimentTagParam:
 class ModelExperimentBooter:
     model_tag_param: list[ModelExperimentTagParam]
     preproc_params: PreprocessingParameters | None = None
-    datasets_src: tuple[os.PathLike, os.PathLike] | None = None
+    datasets_src: tuple[pathlib.Path, pathlib.Path] | None = None
+    ds_src_is_preproc: bool = False
 
 
 @dataclass
@@ -123,3 +130,15 @@ class ModelExperimentResult:
         else:
             out = "configuration: {}, performance: {}".format(self.config, round(self.f1_scores[0], 4))
         return out
+
+
+"""
+    Model exploitation
+"""
+
+
+@dataclass
+class ChallDataSource:
+    dataset_src: pathlib.Path
+    id_src: pathlib.Path
+    ds_src_is_preproc: bool
