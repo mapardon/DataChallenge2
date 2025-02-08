@@ -2,7 +2,6 @@
     Operations not in the scope of ML procedure or model identification
 """
 import pathlib
-import warnings
 
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing
@@ -27,10 +26,6 @@ def create_preprocessed_datafiles(ppars: PreprocessingParameters):
     dl = DataLoading()
     dl.load_challenge_data(pathlib.Path("data/challenge_features.csv"), None, False)
     ch_features, ch_id = dl.get_challenge_dataset()
-
-    if ppars.outlier_detector is not None:
-        ppars.outlier_detector = None
-        warnings.warn("Outlier detector has been specified for model exploitation data preprocessing. Denying it before continuing.")
 
     dp = DataPreprocessing(ch_features, None, ch_id)
     dp.preprocessing(ppars)

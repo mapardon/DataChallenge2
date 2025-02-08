@@ -1,3 +1,5 @@
+import warnings
+
 from sklearn.neighbors import LocalOutlierFactor
 
 from Structs import PreprocessingParameters, PreprocessingOutput
@@ -35,7 +37,10 @@ class DataPreprocessing:
             self.features_scaling(pars.scaler)
 
         if pars.outlier_detector is not None:
-            res.outliers_detection_res = self.outlier_detection(pars.outlier_detector, pars.outlier_detector_nn)
+            if not self.labels and self.data_id:
+                warnings.warn("Outlier detector has been specified for model exploitation data preprocessing. Denying it before continuing.")
+            else:
+                res.outliers_detection_res = self.outlier_detection(pars.outlier_detector, pars.outlier_detector_nn)
 
         if pars.remove_uninformative_features:
             res.uninformative_features = self.remove_uninformative_features()

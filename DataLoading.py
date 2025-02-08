@@ -35,7 +35,7 @@ class DataLoading:
         self.features = pd.read_csv(features_src)
 
         if is_preproc:
-            self.data_id = pd.read_csv(id_src)
+            self.data_id = pd.read_csv(id_src).pop("building_id")
         else:
             self.data_id = self.features.pop("building_id")
 

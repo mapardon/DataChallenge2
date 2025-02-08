@@ -2,7 +2,6 @@ import copy
 import pathlib
 import shelve
 import statistics
-import warnings
 from datetime import datetime
 from math import ceil
 from multiprocessing import Process, Queue
@@ -190,7 +189,6 @@ class MachineLearningProcedure:
         # If we process dataset here, changes must be kept for possible ME phase
         if self.me_booter.preproc_params:
             self.me_booter.preproc_params.feature_selector = out.selected_features
-            print()
         elif self.preproc_params:
             self.preproc_params.feature_selector = out.selected_features
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
@@ -286,10 +284,6 @@ class MachineLearningProcedure:
 
             else:
                 raise Warning("Missing or inconsistent preprocessing parameters for challenge data.")
-
-            if ppars.outlier_detector is not None:
-                ppars.outlier_detector = None
-                warnings.warn("Outlier detector has been specified for model exploitation data preprocessing. Denying it before continuing.")
 
             dp = DataPreprocessing(features, None, data_id)
             dp.preprocessing(ppars)
