@@ -10,9 +10,10 @@ import sys
 from dataclasses import dataclass
 from typing import Literal, Union
 
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 
 """
@@ -33,13 +34,13 @@ else:
 
 if PREPROC:
     if SHORT:
-        PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed_short.csv")
-        PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed_short.csv")
-        PREPROC_CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed_short.csv")
+        FEATURES_SRC = pathlib.Path("data/train_features_preprocessed_short.csv")
+        LABELS_SRC = pathlib.Path("data/train_labels_preprocessed_short.csv")
+        CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed_short.csv")
     else:
-        PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed.csv")
-        PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed.csv")
-        PREPROC_CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed.csv")
+        FEATURES_SRC = pathlib.Path("data/train_features_preprocessed.csv")
+        LABELS_SRC = pathlib.Path("data/train_labels_preprocessed.csv")
+        CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed.csv")
 
 STORAGE = "save-models"
 
@@ -113,8 +114,9 @@ class PreprocExperimentResult:
     Model experiments
 """
 
-experiment_model_tags = Literal["lm", "dtree", "gbc", "knn"]
-experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, GradientBoostingClassifier, KNeighborsClassifier]
+experiment_model_tags = Literal["lm", "dtree", "rforest", "gbc", "knn", "svm"]
+experiment_model_types = Union[LinearRegression, DecisionTreeClassifier, RandomForestClassifier,
+                               GradientBoostingClassifier, KNeighborsClassifier, LinearSVC]
 
 
 @dataclass

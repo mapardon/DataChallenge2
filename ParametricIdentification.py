@@ -1,7 +1,8 @@
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 
 from ParametricIdentificationCV import ParametricIdentificationCV
@@ -18,7 +19,7 @@ class ParametricIdentification(ParametricIdentificationCV):
 
     def parametric_identification(self, config: ModelExperimentTagParam) -> list[ModelExperimentResult]:
         if config.model_param is None:
-            {"lm": self.lm, "dtree": self.dtree, "knn": self.knn}[config.model_tag]()
+            {"lm": self.lm, "dtree": self.dtree, "rforest": self.rforest, "knn": self.knn, "svm": self.svm}[config.model_tag]()
         else:
             {"gbc": self.gbc}[config.model_tag](config.model_param)
 
@@ -36,22 +37,27 @@ class ParametricIdentification(ParametricIdentificationCV):
                 f1 = self.parametric_identification_cv(dtree, False)
                 self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "dtree", dtree, False, {"criterion": c, "splitter": s}), f1))
 
+    def rforest(self):
+        for n_est in [10, 50, 100, 200, 500]:
+            rforest = RandomForestClassifier(n_estimators=n_est, criterion="log_loss")
+            f1 = self.parametric_identification_cv(rforest, False)
+            self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "rforest", rforest, False, {"n_estimators": n_est, "criterion": "log_loss"}), f1))
+
     def knn(self):
         for nn in [2, 5, 10]:
             knc = KNeighborsClassifier(nn)
             f1 = self.parametric_identification_cv(knc, False)
             self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "knn", knc, False, {"n_neighbors": nn}), f1))
 
-    """knn
-    SVM
-    naive
-    bayes
-    classifier
-    neural
-    networks
+    def svm(self):
+        svm = LinearSVC()
+        f1 = self.parametric_identification_cv(svm, False)
+        self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "svm", svm, False, None), f1))
+
+    """
+    neural networks
     ensembling
-    random
-    forests"""
+    """
 
     def gbc(self, par="n_estimators"):
         """ :param par: possible values: n_estimators, subsample, min_sample_split, max_depth """

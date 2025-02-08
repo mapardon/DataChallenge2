@@ -217,8 +217,7 @@ class MachineLearningProcedure:
 
     def parametric_identification_wrapper(self, model_tag_param: ModelExperimentTagParam, pipe: Queue):
         self.parametric_identification(model_tag_param)
-        tmp = copy.deepcopy(self.pi_candidates)
-        pipe.put(tmp)
+        pipe.put(self.pi_candidates)
 
     def parametric_identification(self, model_tag_param: ModelExperimentTagParam):
 
