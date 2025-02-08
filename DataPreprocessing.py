@@ -136,7 +136,7 @@ class DataPreprocessing:
         self.features.drop(columns=correlated_features.keys(), inplace=True)
         return list(correlated_features.keys())  # explicit convertion to avoid type hint error
 
-    def feature_selection(self, feat_selector: Literal["RFE"] | list | np.ndarray | None, feature_selection_prop: float):
+    def feature_selection(self, feat_selector: Literal["RFE"] | list, feature_selection_prop: float) -> list[str]:
 
         if feat_selector in ["RFE"]:
             # fit estimator

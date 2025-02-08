@@ -6,18 +6,40 @@
 
 import pathlib
 import statistics
+import sys
 from dataclasses import dataclass
 from typing import Literal, Union
 
-import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 """
-    Disk storage
+    Paths
 """
+
+SHORT = bool(int(sys.argv[1])) if len(sys.argv) > 1 else True
+PREPROC = bool(int(sys.argv[2])) if len(sys.argv) > 2 else True
+
+if SHORT:
+    FEATURES_SRC: pathlib.Path = pathlib.Path("data/train_features_short.csv")
+    LABELS_SRC: pathlib.Path = pathlib.Path("data/train_labels_short.csv")
+    CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/train_features_short.csv")
+else:
+    FEATURES_SRC: pathlib.Path = pathlib.Path("data/train_features.csv")
+    LABELS_SRC: pathlib.Path = pathlib.Path("data/train_labels.csv")
+    CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features.csv")
+
+if PREPROC:
+    if SHORT:
+        PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed_short.csv")
+        PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed_short.csv")
+        PREPROC_CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed_short.csv")
+    else:
+        PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed.csv")
+        PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed.csv")
+        PREPROC_CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed.csv")
 
 STORAGE = "save-models"
 
@@ -30,6 +52,13 @@ experiment_result_sorting_param = {"reverse": True, "key": lambda x: statistics.
 
 
 @dataclass
+class PreprocessingExperimentBooter:
+    n_exp: int
+    features_path: pathlib.Path
+    labels_path: pathlib.Path
+
+
+@dataclass
 class PreprocessingParameters:
     numerizer: Literal["remove", "one-hot"] | None = None
     scaler: Literal["minmax"] | None = None
@@ -37,7 +66,7 @@ class PreprocessingParameters:
     outlier_detector_nn: int = 0
     remove_uninformative_features: bool = False
     remove_correlated_features: bool = False
-    feature_selector: Literal["RFE"] | list | np.ndarray | None = None
+    feature_selector: Literal["RFE"] | list | None = None
     feature_selection_prop: float | None = None
 
     def __repr__(self):
@@ -53,7 +82,7 @@ class PreprocessingOutput:
     outliers_detection_res: int | None = None
     uninformative_features: list[str] | None = None
     correlated_features: list[str] | None = None
-    selected_features: str | None = None
+    selected_features: list[str] | None = None
 
 
 class PreprocExperimentResult:
@@ -97,9 +126,10 @@ class ModelExperimentTagParam:
 @dataclass
 class ModelExperimentBooter:
     model_tag_param: list[ModelExperimentTagParam]
-    preproc_params: PreprocessingParameters | None = None
-    datasets_src: tuple[pathlib.Path, pathlib.Path] | None = None
-    ds_src_is_preproc: bool = False
+    preproc_params: PreprocessingParameters | None
+    features_src: pathlib.Path
+    labels_src: pathlib.Path
+    ds_src_is_preproc: bool
 
 
 @dataclass
@@ -138,7 +168,8 @@ class ModelExperimentResult:
 
 
 @dataclass
-class ChallDataSource:
+class ModelExploitationBooter:
+    preproc_params: PreprocessingParameters | None
     dataset_src: pathlib.Path
-    id_src: pathlib.Path
+    id_src: pathlib.Path | None
     ds_src_is_preproc: bool

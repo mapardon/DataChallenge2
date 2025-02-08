@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from DataLoading import DataLoading
+from Structs import FEATURES_SRC, LABELS_SRC
 
-FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features.csv")
-LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels.csv")
 VISUALS: os.PathLike = pathlib.Path("data/visuals/")
 
 
@@ -16,7 +15,7 @@ class DataAnalysis:
 
     def __init__(self):
         dl = DataLoading()
-        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
+        dl.load_train_data(FEATURES_SRC, LABELS_SRC, False)
         self.features, self.labels = dl.get_train_dataset()
 
     def exploratory_analysis(self):

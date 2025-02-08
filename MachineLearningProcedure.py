@@ -1,9 +1,7 @@
 import copy
-import os
 import pathlib
 import shelve
 import statistics
-import sys
 import warnings
 from datetime import datetime
 from math import ceil
@@ -20,34 +18,24 @@ from ParametricIdentification import ParametricIdentification
 from PreprocessingIdentification import PreprocessingIdentification
 from StructuralIdentification import StructuralIdentification
 from Structs import ModelExperimentBooter, PreprocessingParameters, ModelExperimentResult, PreprocExperimentResult, \
-    ModelExperimentTagParam, experiment_result_sorting_param, STORAGE, ChallDataSource
-
-SHORT = bool(int(sys.argv[1])) if len(sys.argv) > 1 else True
-
-if SHORT:
-    FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features_short.csv")
-    LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels_short.csv")
-    CHALLENGE_SRC: os.PathLike = pathlib.Path("data/train_features_short.csv")
-
-else:
-    FEATURES_SRC: os.PathLike = pathlib.Path("data/train_features.csv")
-    LABELS_SRC: os.PathLike = pathlib.Path("data/train_labels.csv")
-    CHALLENGE_SRC: os.PathLike = pathlib.Path("data/challenge_features.csv")
+    ModelExperimentTagParam, experiment_result_sorting_param, STORAGE, ModelExploitationBooter, \
+    PreprocessingExperimentBooter, SHORT
 
 
 class MachineLearningProcedure:
-    def __init__(self, preproc_params: PreprocessingParameters | None, mi_configs: ModelExperimentBooter | None,
-                 chall_data_src: ChallDataSource):
-        self.preproc_params: PreprocessingParameters | None = preproc_params  # allow to skip preproc identification
+    def __init__(self, ppi_configs: PreprocessingExperimentBooter | None, mi_configs: ModelExperimentBooter | None,
+                 me_booter: ModelExploitationBooter):
+        self.preproc_params: PreprocessingParameters | None = None
+        self.ppi_config: PreprocessingExperimentBooter | None = ppi_configs
         self.mi_configs: ModelExperimentBooter | None = mi_configs
         self.pi_candidates: list[ModelExperimentResult] = list()
         self.final_model_candidate: ModelExperimentResult | None = None
+        self.me_booter: ModelExploitationBooter = me_booter
 
         self.train_features: pd.DataFrame | None = None
         self.train_labels: pd.DataFrame | None = None
         self.validation_features: pd.DataFrame | None = None
         self.validation_labels: pd.DataFrame | None = None
-        self.chall_data_src: ChallDataSource = chall_data_src
 
     def main(self, modes: list[Literal["DA", "PPI", "PI", "SI", "ME"]]):
         if "DA" in modes:
@@ -61,8 +49,7 @@ class MachineLearningProcedure:
                 raise Warning("No model has been provided for model identification")
 
             # Load data
-            self.model_experiment_data_prep(self.mi_configs.preproc_params, self.mi_configs.datasets_src)
-            # FIXME: we don't keep track of data preprocessing output (in particular, no way to know which feature shave been selected for an eventual model exploitation later)
+            self.model_experiment_data_prep(self.mi_configs.features_src, self.mi_configs.labels_src)
 
             # Run experiments
             procs: list[Process] = list()
@@ -89,10 +76,10 @@ class MachineLearningProcedure:
 
     def preprocessing_identification(self) -> None:
         dl = DataLoading()
-        dl.load_data(FEATURES_SRC, LABELS_SRC, False)
+        dl.load_train_data(self.ppi_config.features_path, self.ppi_config.labels_path, False)
         features, labels = dl.get_train_dataset()
 
-        ppi = PreprocessingIdentification(features, labels, cv_folds=3)
+        ppi = PreprocessingIdentification(features, labels, cv_folds=self.ppi_config.n_exp)
         ppi_candidates: list[PreprocExperimentResult] = list()
         tmp: list[PreprocExperimentResult] = list()
         best_preproc_params_combination: PreprocessingParameters = PreprocessingParameters()
@@ -184,28 +171,31 @@ class MachineLearningProcedure:
 
     # MODEL IDENTIFICATION
 
-    def load_datasets(self, features_src: os.PathLike | None = None, labels_src: os.PathLike | None = None) -> None:
+    def load_datasets(self, features_src: pathlib.Path, labels_src: pathlib.Path) -> None:
         """ NB: If this method (and so does load_and_preprocessing_datasets) is called from parametric identification,
         datasets will be split between train and validations sets, even if validation sets will not be used in the
         cross-validation loop. This is done to perform parametric identification and structural identification in the
-        same conditions (i.e., models trained more in parametric identification). """
+        same conditions (i.e., avoid models being trained more in parametric identification). """
 
         dl = DataLoading()
-        if None not in [features_src, labels_src]:
-            dl.load_data(features_src, labels_src, True)
-        else:
-            dl.load_data(FEATURES_SRC, LABELS_SRC, True)
+        dl.load_train_data(features_src, labels_src, True)
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = DataPreprocessing(*dl.get_train_dataset(), None).get_train_validation_datasets()
 
-    def load_and_preprocess_datasets(self, config: PreprocessingParameters) -> None:
-        self.load_datasets()
+    def load_and_preprocess_datasets(self, preproc_params: PreprocessingParameters, features_src: pathlib.Path,
+                                     labels_src: pathlib.Path) -> None:
+        self.load_datasets(features_src, labels_src)
 
         dp = DataPreprocessing(self.train_features, self.train_labels, None)
-        out = dp.preprocessing(config)
-        self.preproc_params.feature_selector = out.selected_features  # If we process dataset here, changes must be kept for possible ME phase
+        out = dp.preprocessing(preproc_params)
+        # If we process dataset here, changes must be kept for possible ME phase
+        if self.me_booter.preproc_params:
+            self.me_booter.preproc_params.feature_selector = out.selected_features
+            print()
+        elif self.preproc_params:
+            self.preproc_params.feature_selector = out.selected_features
         self.train_features, self.train_labels, self.validation_features, self.validation_labels = dp.get_train_validation_datasets()
 
-    def model_experiment_data_prep(self, preproc_params: PreprocessingParameters = None, datasets_src: tuple[os.PathLike, os.PathLike] = None) -> None:
+    def model_experiment_data_prep(self, features_src: pathlib.Path = None, labels_src: pathlib.Path = None) -> None:
         """ Prepare datasets for parametric [and structural] identification. This is performed in an independent method
          to prepare datasets before the actual parametric identification step and therefore avoid recomputing them for
          each experiment given they're computed in independent sub-processes. """
@@ -215,16 +205,14 @@ class MachineLearningProcedure:
         # Load data
         if any(_ is None for _ in [self.train_features, self.train_labels]):
 
-            if preproc_params is not None:
-                self.load_and_preprocess_datasets(preproc_params)
+            if self.mi_configs.ds_src_is_preproc:
+                self.load_datasets(features_src, labels_src)
 
-            elif datasets_src is not None:  # load precomputed preprocessed datasets
-                self.load_datasets(*datasets_src)
-                with shelve.open(STORAGE) as db:
-                    self.preproc_params = db[str(datasets_src[0])]  # preprocessing params are stored in the db with key = features file path
+            elif self.mi_configs.preproc_params:
+                self.load_and_preprocess_datasets(self.mi_configs.preproc_params, self.mi_configs.features_src, self.mi_configs.labels_src)
 
-            elif self.preproc_params is not None:  # use result of preprocessing identification or user specified preprocessing parameters
-                self.load_and_preprocess_datasets(self.preproc_params)
+            elif self.preproc_params:  # use result of preprocessing identification
+                self.load_and_preprocess_datasets(self.preproc_params, self.mi_configs.features_src, self.mi_configs.labels_src)
 
             else:
                 raise Warning("Couldn't load datasets for parametric identification")
@@ -252,7 +240,7 @@ class MachineLearningProcedure:
         if any(_ is None for _ in [self.train_features, self.train_labels, self.validation_features, self.validation_labels]):
 
             if self.preproc_params is not None:
-                self.load_and_preprocess_datasets(self.preproc_params)
+                self.load_and_preprocess_datasets(self.preproc_params, self.mi_configs.features_src, self.mi_configs.labels_src)
 
             else:
                 raise Warning("Data couldn't be loaded before structural identification.")
@@ -265,7 +253,7 @@ class MachineLearningProcedure:
         self.final_model_candidate = si_candidates[0]
 
         if not SHORT:
-            with shelve.open("save-models") as db:
+            with shelve.open(STORAGE) as db:
                 db["pi-candidates-{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))] = self.pi_candidates
 
         print("\n * Structural Identification *")
@@ -278,19 +266,33 @@ class MachineLearningProcedure:
         """ Use the models and preprocessing parameters having shown the best performance during training
         to predict challenge data """
 
-        if self.preproc_params.outlier_detector is not None:
-            self.preproc_params.outlier_detector = None
-            warnings.warn("Outlier detector has been specified for model exploitation. Denying it before continuing.")
-
-        # load challenge data
-        dl = DataLoading()
-        dl.load_data(self.chall_data_src.dataset_src, None, False)
+        # Load challenge data
+        if self.me_booter.ds_src_is_preproc:
+            dl = DataLoading()
+            dl.load_challenge_data(self.me_booter.dataset_src, self.me_booter.id_src, True)
+        else:
+            dl = DataLoading()
+            dl.load_challenge_data(self.me_booter.dataset_src, None, False)
         features, data_id = dl.get_challenge_dataset()
 
         # preprocess challenge data
-        if not self.chall_data_src.ds_src_is_preproc:
+        if not self.me_booter.ds_src_is_preproc:
+            ppars: PreprocessingParameters
+            if self.mi_configs and self.mi_configs.preproc_params and self.me_booter.preproc_params and self.me_booter.preproc_params == self.mi_configs.preproc_params:
+                ppars = self.me_booter.preproc_params
+
+            elif self.preproc_params and not self.mi_configs.preproc_params:
+                ppars = self.preproc_params
+
+            else:
+                raise Warning("Missing or inconsistent preprocessing parameters for challenge data.")
+
+            if ppars.outlier_detector is not None:
+                ppars.outlier_detector = None
+                warnings.warn("Outlier detector has been specified for model exploitation data preprocessing. Denying it before continuing.")
+
             dp = DataPreprocessing(features, None, data_id)
-            dp.preprocessing(self.preproc_params)
+            dp.preprocessing(ppars)
             features, data_id = dp.get_challenge_dataset()
 
         # predict challenge data

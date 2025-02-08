@@ -1,18 +1,9 @@
 import pathlib
-import sys
 
-from Structs import ModelExperimentTagParam, ModelExperimentBooter, PreprocessingParameters, ChallDataSource
+from Structs import ModelExperimentTagParam, ModelExperimentBooter, PreprocessingParameters, ModelExploitationBooter, \
+    PreprocessingExperimentBooter, FEATURES_SRC, LABELS_SRC, CHALLENGE_SRC
 
 from MachineLearningProcedure import MachineLearningProcedure
-
-SHORT = bool(int(sys.argv[1])) if len(sys.argv) > 1 else True
-
-if SHORT:
-    PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed_short.csv")
-    PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed_short.csv")
-else:
-    PREPROC_FEATURES_SRC = pathlib.Path("data/train_features_preprocessed.csv")
-    PREPROC_LABELS_SRC = pathlib.Path("data/train_labels_preprocessed.csv")
 
 if __name__ == '__main__':
     preproc_pars = PreprocessingParameters(numerizer="one-hot", scaler="minmax", outlier_detector=None,
@@ -34,16 +25,20 @@ if __name__ == '__main__':
                                                remove_correlated_features=False, feature_selector=preprocessed_features,
                                                feature_selection_prop=1/2)
 
-    model_tags_params: list[ModelExperimentTagParam] = [ModelExperimentTagParam("lm", None),
-                                                        ModelExperimentTagParam("dtree", None),
-                                                        ModelExperimentTagParam("gbc", "n_estimators"),
-                                                        ModelExperimentTagParam("gbc", "subsample"),
-                                                        ModelExperimentTagParam("gbc", "min_sample_split"),
-                                                        ModelExperimentTagParam("gbc", "max_depth")]
-    model_tags_params = [ModelExperimentTagParam("lm", None), ModelExperimentTagParam("knn", None)]
+    model_tags_params_all: list[ModelExperimentTagParam] = [ModelExperimentTagParam("lm", None),
+                                                            ModelExperimentTagParam("dtree", None),
+                                                            ModelExperimentTagParam("gbc", "n_estimators"),
+                                                            ModelExperimentTagParam("gbc", "subsample"),
+                                                            ModelExperimentTagParam("gbc", "min_sample_split"),
+                                                            ModelExperimentTagParam("gbc", "max_depth")]
+    model_tags_params = [ModelExperimentTagParam("lm", None), ModelExperimentTagParam("knn", None)][:1]
 
-    mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, None, None)
+    ppi_config: PreprocessingExperimentBooter = PreprocessingExperimentBooter(3, FEATURES_SRC, LABELS_SRC)
 
-    chall_data_src: ChallDataSource = ChallDataSource("data/challenge_features_preprocessed.csv")
+    mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, preproc_pars, FEATURES_SRC, LABELS_SRC, False)
 
-    MachineLearningProcedure(preproc_pars, mi_configs).main(["PI", "SI", "ME"])
+    chall_data_src: ModelExploitationBooter = ModelExploitationBooter(preproc_pars,
+                                                                      pathlib.Path(CHALLENGE_SRC),
+                                                                      None, False)
+
+    MachineLearningProcedure(ppi_config, mi_configs, chall_data_src).main(["PI", "SI", "ME"])

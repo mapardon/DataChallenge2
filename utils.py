@@ -2,11 +2,11 @@
     Operations not in the scope of ML procedure or model identification
 """
 import pathlib
-import shelve
+import warnings
 
 from DataLoading import DataLoading
 from DataPreprocessing import DataPreprocessing
-from Structs import PreprocessingParameters, STORAGE
+from Structs import PreprocessingParameters
 
 
 def create_preprocessed_datafiles(ppars: PreprocessingParameters):
@@ -16,7 +16,7 @@ def create_preprocessed_datafiles(ppars: PreprocessingParameters):
 
     # Training data
     dl = DataLoading()
-    dl.load_data(pathlib.Path("data/train_features.csv"), pathlib.Path("data/train_labels.csv"), shuffle=True)
+    dl.load_train_data(pathlib.Path("data/train_features.csv"), pathlib.Path("data/train_labels.csv"), shuffle=True)
     tr_features, tr_labels = dl.get_train_dataset()
 
     dp = DataPreprocessing(tr_features, tr_labels, None)
@@ -25,8 +25,12 @@ def create_preprocessed_datafiles(ppars: PreprocessingParameters):
 
     # challenge data
     dl = DataLoading()
-    dl.load_data(pathlib.Path("data/challenge_features.csv"), None, shuffle=False)
+    dl.load_challenge_data(pathlib.Path("data/challenge_features.csv"), None, False)
     ch_features, ch_id = dl.get_challenge_dataset()
+
+    if ppars.outlier_detector is not None:
+        ppars.outlier_detector = None
+        warnings.warn("Outlier detector has been specified for model exploitation data preprocessing. Denying it before continuing.")
 
     dp = DataPreprocessing(ch_features, None, ch_id)
     dp.preprocessing(ppars)
