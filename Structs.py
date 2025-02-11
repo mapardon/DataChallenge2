@@ -27,20 +27,24 @@ if SHORT:
     FEATURES_SRC: pathlib.Path = pathlib.Path("data/train_features_short.csv")
     LABELS_SRC: pathlib.Path = pathlib.Path("data/train_labels_short.csv")
     CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/train_features_short.csv")
+    CHALLENGE_ID: pathlib.Path | None = None
 else:
     FEATURES_SRC: pathlib.Path = pathlib.Path("data/train_features.csv")
     LABELS_SRC: pathlib.Path = pathlib.Path("data/train_labels.csv")
     CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features.csv")
+    CHALLENGE_ID: pathlib.Path | None = None
 
 if PREPROC:
     if SHORT:
         FEATURES_SRC = pathlib.Path("data/train_features_preprocessed_short.csv")
         LABELS_SRC = pathlib.Path("data/train_labels_preprocessed_short.csv")
-        CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed_short.csv")
+        CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/train_features_preprocessed_short.csv")
+        CHALLENGE_ID: pathlib.Path | None = pathlib.Path("data/challenge_id_preprocessed_short.csv")
     else:
         FEATURES_SRC = pathlib.Path("data/train_features_preprocessed.csv")
         LABELS_SRC = pathlib.Path("data/train_labels_preprocessed.csv")
         CHALLENGE_SRC: pathlib.Path = pathlib.Path("data/challenge_features_preprocessed.csv")
+        CHALLENGE_ID: pathlib.Path | None = pathlib.Path("data/challenge_id_preprocessed.csv")
 
 STORAGE = "save-models"
 

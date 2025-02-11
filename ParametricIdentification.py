@@ -38,7 +38,8 @@ class ParametricIdentification(ParametricIdentificationCV):
                 self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "dtree", dtree, False, {"criterion": c, "splitter": s}), f1))
 
     def rforest(self):
-        for n_est in [10, 50, 100, 200, 500]:
+        for n_est in [10, 50, 100, 200, 300]:
+            # /!\ Large forests can make the pipelining of MachineLearningProcedure fail
             rforest = RandomForestClassifier(n_estimators=n_est, criterion="log_loss")
             f1 = self.parametric_identification_cv(rforest, False)
             self.candidates.append(ModelExperimentResult(ModelExperimentConfiguration("PI", "rforest", rforest, False, {"n_estimators": n_est, "criterion": "log_loss"}), f1))

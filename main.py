@@ -1,5 +1,5 @@
 from Structs import ModelExperimentTagParam, ModelExperimentBooter, PreprocessingParameters, ModelExploitationBooter, \
-    PreprocessingExperimentBooter, FEATURES_SRC, LABELS_SRC, CHALLENGE_SRC
+    PreprocessingExperimentBooter, FEATURES_SRC, LABELS_SRC, CHALLENGE_SRC, CHALLENGE_ID, PREPROC
 
 from MachineLearningProcedure import MachineLearningProcedure
 
@@ -30,12 +30,12 @@ if __name__ == '__main__':
                                            remove_uninformative_features=False, remove_correlated_features=False,
                                            feature_selector="RFE", feature_selection_prop=1/2)
 
-    model_tags_params = [ModelExperimentTagParam("rforest", None)]
-
     ppi_config: PreprocessingExperimentBooter = PreprocessingExperimentBooter(3, FEATURES_SRC, LABELS_SRC)
 
-    mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, None, FEATURES_SRC, LABELS_SRC, True)
+    model_tags_params = [ModelExperimentTagParam("lm", None), ModelExperimentTagParam("dtree", None),]
 
-    chall_data_src: ModelExploitationBooter = ModelExploitationBooter(None, CHALLENGE_SRC, None, True)
+    mi_configs: ModelExperimentBooter = ModelExperimentBooter(model_tags_params, preproc_pars, FEATURES_SRC, LABELS_SRC, False)
 
-    MachineLearningProcedure(ppi_config, mi_configs, chall_data_src).main(["PI", "SI"])
+    chall_data_src: ModelExploitationBooter = ModelExploitationBooter(preproc_pars, CHALLENGE_SRC, CHALLENGE_ID, PREPROC)
+
+    MachineLearningProcedure(True, ppi_config, mi_configs, chall_data_src).main(["PI", "SI", "ME"])

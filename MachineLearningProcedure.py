@@ -1,10 +1,10 @@
-import copy
 import pathlib
 import shelve
 import statistics
 from datetime import datetime
 from math import ceil
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Manager
+from multiprocessing.managers import ListProxy
 from typing import Literal
 
 import numpy as np
@@ -22,8 +22,9 @@ from Structs import ModelExperimentBooter, PreprocessingParameters, ModelExperim
 
 
 class MachineLearningProcedure:
-    def __init__(self, ppi_configs: PreprocessingExperimentBooter | None, mi_configs: ModelExperimentBooter | None,
-                 me_booter: ModelExploitationBooter):
+    def __init__(self, run_parallel: bool, ppi_configs: PreprocessingExperimentBooter | None,
+                 mi_configs: ModelExperimentBooter | None, me_booter: ModelExploitationBooter):
+        self.run_parallel: bool = run_parallel
         self.preproc_params: PreprocessingParameters | None = None
         self.ppi_config: PreprocessingExperimentBooter | None = ppi_configs
         self.mi_configs: ModelExperimentBooter | None = mi_configs
@@ -51,19 +52,22 @@ class MachineLearningProcedure:
             self.model_experiment_data_prep(self.mi_configs.features_src, self.mi_configs.labels_src)
 
             # Run experiments
-            procs: list[Process] = list()
-            queue: Queue = Queue()
-            for mi_config in self.mi_configs.model_tag_param:
-                procs.append(Process(target=self.parametric_identification_wrapper, args=(mi_config, queue)))
+            if self.run_parallel:
+                with Manager() as manager:
+                    pipe: ListProxy = manager.list()
+                    procs: list[Process] = list()
+                    for pid, mi_config in enumerate(self.mi_configs.model_tag_param):
+                        procs.append(Process(target=self.parametric_identification_wrapper, args=(mi_config, pipe)))
 
-            [p.start() for p in procs]
+                    [p.start() for p in procs]
+                    [p.join() for p in procs]
 
-            while not queue.empty() or any(p.is_alive() for p in procs):
-                while not queue.empty():
-                    self.pi_candidates.extend(queue.get())
+                    for candidates in pipe:
+                        self.pi_candidates.extend(candidates)
 
-            [p.join() for p in procs]
-            queue.close()
+            else:
+                for pid, mi_config in enumerate(self.mi_configs.model_tag_param):
+                    self.parametric_identification_wrapper(pid, mi_config)
 
         if "SI" in modes:
             self.structural_identification()
@@ -215,9 +219,10 @@ class MachineLearningProcedure:
             else:
                 raise Warning("Couldn't load datasets for parametric identification")
 
-    def parametric_identification_wrapper(self, model_tag_param: ModelExperimentTagParam, pipe: Queue):
+    def parametric_identification_wrapper(self, model_tag_param: ModelExperimentTagParam, pipe: ListProxy | None):
         self.parametric_identification(model_tag_param)
-        pipe.put(self.pi_candidates)
+        if pipe is not None:  # not running in multiprocess
+            pipe.append(self.pi_candidates)
 
     def parametric_identification(self, model_tag_param: ModelExperimentTagParam):
 
